@@ -155,7 +155,7 @@ extends ArgumentOption[Map[File, File], Context] {
   }
 
   def parseFilePair(pair: String): Option[(File, File)] = {
-    val p = pair split ':'
+    val p = pair split ';'
     if (p.length == 2) Some((new File(p(0)), new File(p(1)))) else None
   }
 }
