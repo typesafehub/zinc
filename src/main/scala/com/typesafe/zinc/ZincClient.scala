@@ -33,6 +33,13 @@ object ZincClient {
  * Client for talking directly to a nailgun server from another JVM.
  */
 class ZincClient(val address: InetAddress, val port: Int) {
+  private[this] val socket = 
+    try {
+      Some(new Socket(address, port))
+    } catch {
+      case _: java.io.IOException => None
+    }
+
   def this(address: String, port: Int) = this(InetAddress.getByName(address), port)
   def this(port: Int) = this(InetAddress.getByName(null), port)
 
@@ -59,27 +66,26 @@ class ZincClient(val address: InetAddress, val port: Int) {
    * All output goes to specified output streams. Exit code is returned.
    * @throws java.net.ConnectException if the zinc server is not available
    */
-  def send(command: String, args: Seq[String], cwd: File, out: OutputStream, err: OutputStream): Int = {
-    val socket = new Socket(address, port)
-    val sockout = socket.getOutputStream
-    val sockin = new DataInputStream(socket.getInputStream)
-    sendCommand(command, args, cwd, sockout)
-    val exitCode = receiveOutput(sockin, out, err)
-    sockout.close(); sockin.close(); socket.close()
-    exitCode
+  def send(command: String, args: Seq[String], cwd: File, out: OutputStream, err: OutputStream): Int = socket match {
+    case Some(s) =>
+      val sockout = s.getOutputStream
+      val sockin = new DataInputStream(s.getInputStream)
+      sendCommand(command, args, cwd, sockout)
+      val exitCode = receiveOutput(sockin, out, err)
+      sockout.close(); sockin.close(); s.close()
+      exitCode
+    case _ =>
+      -1
   }
 
   /**
    * Check if a nailgun server is currently available.
    */
-  def serverAvailable(): Boolean = {
-    try { (new Socket(address, port)).close(); true }
-    catch { case _: java.net.ConnectException => false }
-  }
+  def serverAvailable(): Boolean = socket map(_.isConnected) getOrElse false
 
   private def sendCommand(command: String, args: Seq[String], cwd: File, out: OutputStream): Unit = {
     import ZincClient.Chunk.{ Argument, Command, Directory }
-    args foreach { arg => putChunk(Argument, arg, out) }
+    args foreach { arg => putChunk(Argument, if(arg.isEmpty) " " else arg, out) }
     putChunk(Directory, cwd.getCanonicalPath, out)
     putChunk(Command, command, out)
   }
