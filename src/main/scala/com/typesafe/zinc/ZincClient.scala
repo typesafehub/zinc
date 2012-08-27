@@ -87,32 +87,9 @@ class ZincClient(val address: InetAddress, val port: Int) {
     case _: java.io.IOException => false
   }
 
-  private def filterValidArguments(args: Seq[String]): Seq[String] = {
-    @tailrec
-    def filter(validArgs: Seq[String], args: Seq[String]): Seq[String] = args match {
-      case Seq(x, xs@_*) if x.startsWith("-") =>
-        val (values, tail) = xs span { s => !s.startsWith("-") }
-        if(values.isEmpty)
-          filter(x +: validArgs, xs)
-        else {
-          val validValues = values filterNot { _.trim.isEmpty }
-          if(validValues.isEmpty) {
-            filter(validArgs, tail)
-          } else {
-            filter((x +: validValues).reverse ++: validArgs, tail)
-          }
-        }
-      case Seq(x, xs@_*) if x.trim.isEmpty => filter(validArgs, xs)
-      case Seq(x, xs@_*) => filter(x +: validArgs, xs)
-      case Seq() => validArgs
-    }
-    filter(Seq.empty, args).reverse
-  }
-
   private def sendArguments(args: Seq[String], out: OutputStream): Unit = {
     import ZincClient.Chunk.Argument
-    val validArgs = filterValidArguments(args)
-    validArgs foreach { arg => putChunk(Argument, arg, out) }
+    args foreach { arg => putChunk(Argument, arg, out) }
   }
 
   private def sendCommand(command: String, args: Seq[String], out: OutputStream): Unit = {
