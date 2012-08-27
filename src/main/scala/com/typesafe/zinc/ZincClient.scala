@@ -5,7 +5,7 @@
 package com.typesafe.zinc
 
 import com.martiansoftware.nailgun.NGConstants
-import java.io.{ DataInputStream, File, OutputStream }
+import java.io.{ ByteArrayOutputStream, DataInputStream, File, OutputStream }
 import java.net.{ InetAddress, Socket }
 import java.nio.ByteBuffer
 import java.util.{ List => JList }
@@ -60,10 +60,15 @@ class ZincClient(val address: InetAddress, val port: Int) {
    * @throws java.net.ConnectException if the zinc server is not available
    */
   def send(command: String, args: Seq[String], cwd: File, out: OutputStream, err: OutputStream): Int = {
+    val sendCmdFn: (String, Seq[String], OutputStream) => Unit = sendCommand(_, _, cwd, _)
+    send(command, args, sendCmdFn, out, err)
+  }
+
+  private def send(command: String, args: Seq[String], sendCmdFn: (String, Seq[String], OutputStream) => Unit, out: OutputStream, err: OutputStream): Int = {
     val socket = new Socket(address, port)
     val sockout = socket.getOutputStream
     val sockin = new DataInputStream(socket.getInputStream)
-    sendCommand(command, args, cwd, sockout)
+    sendCmdFn(command, args, sockout)
     val exitCode = receiveOutput(sockin, out, err)
     sockout.close(); sockin.close(); socket.close()
     exitCode
@@ -72,14 +77,30 @@ class ZincClient(val address: InetAddress, val port: Int) {
   /**
    * Check if a nailgun server is currently available.
    */
-  def serverAvailable(): Boolean = {
-    try { (new Socket(address, port)).close(); true }
-    catch { case _: java.net.ConnectException => false }
+  def serverAvailable(): Boolean = try {
+    val out = new ByteArrayOutputStream
+    val err = new ByteArrayOutputStream
+    val sendCmdFn: (String, Seq[String], OutputStream) => Unit = sendCommand
+    val exitCode = send("ng-version", Seq.empty, sendCmdFn, out, err)
+    exitCode == 0
+  } catch {
+    case _: java.io.IOException => false
+  }
+
+  private def sendArguments(args: Seq[String], out: OutputStream): Unit = {
+    import ZincClient.Chunk.Argument
+    args foreach { arg => putChunk(Argument, arg, out) }
+  }
+
+  private def sendCommand(command: String, args: Seq[String], out: OutputStream): Unit = {
+    import ZincClient.Chunk.Command
+    sendArguments(args, out)
+    putChunk(Command, command, out)
   }
 
   private def sendCommand(command: String, args: Seq[String], cwd: File, out: OutputStream): Unit = {
-    import ZincClient.Chunk.{ Argument, Command, Directory }
-    args foreach { arg => putChunk(Argument, arg, out) }
+    import ZincClient.Chunk.{ Command, Directory }
+    sendArguments(args, out)
     putChunk(Directory, cwd.getCanonicalPath, out)
     putChunk(Command, command, out)
   }
