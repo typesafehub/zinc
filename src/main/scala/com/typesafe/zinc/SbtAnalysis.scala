@@ -6,9 +6,7 @@ package com.typesafe.zinc
 
 import java.io.File
 import sbt.{ CompileSetup, IO, Logger, Path, Relation }
-import sbt.compiler.CompileOutput
 import sbt.inc.{ Analysis, Relations, Stamps }
-import xsbti.compile.SingleOutput
 
 object SbtAnalysis {
 
@@ -111,9 +109,9 @@ object SbtAnalysis {
    * Rebase the output directory of a compile setup.
    */
   def rebaseSetup(setup: CompileSetup, oldBase: File, newBase: File): CompileSetup = {
-    val output = Some(setup.output) collect { case single: SingleOutput => single.outputDirectory }
+    val output = Some(setup.outputDirectory)
     val mapper = Path.rebase(oldBase, newBase)
-    output flatMap mapper map { dir => new CompileSetup(CompileOutput(dir), setup.options, setup.compilerVersion, setup.order) } getOrElse setup
+    output flatMap mapper map { dir => new CompileSetup(dir, setup.options, setup.compilerVersion, setup.order) } getOrElse setup
   }
 
   /**

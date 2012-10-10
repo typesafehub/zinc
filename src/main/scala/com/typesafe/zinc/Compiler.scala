@@ -6,8 +6,8 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.net.URLClassLoader
-import sbt.{ ClasspathOptions, CompileOptions, CompileSetup, LoggerReporter, ScalaInstance }
-import sbt.compiler.{ AggressiveCompile, AnalyzingCompiler, CompilerCache, CompileOutput, IC }
+import sbt.{ ClasspathOptions, CompileOptions, CompileSetup, ScalaInstance }
+import sbt.compiler.{ AggressiveCompile, AnalyzingCompiler, CompilerCache, IC }
 import sbt.inc.{ Analysis, AnalysisStore, FileBasedStore }
 import sbt.Path._
 import xsbti.compile.{ JavaCompiler, GlobalsCache }
@@ -150,15 +150,12 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
     val getAnalysis: File => Option[Analysis] = analysisMap.get _
     val aggressive    = new AggressiveCompile(cacheFile)
     val cp            = autoClasspath(classesDirectory, scalac.scalaInstance.libraryJar, javaOnly, classpath)
-    val compileOutput = CompileOutput(classesDirectory)
     val globalsCache  = Compiler.residentCache
-    val progress      = None
     val maxErrors     = 100
-    val reporter      = new LoggerReporter(maxErrors, log)
     val skip          = false
-    val compileSetup  = new CompileSetup(compileOutput, new CompileOptions(scalacOptions, javacOptions), scalac.scalaInstance.actualVersion, compileOrder)
+    val compileSetup  = new CompileSetup(classesDirectory, new CompileOptions(scalacOptions, javacOptions), scalac.scalaInstance.actualVersion, compileOrder)
     val analysisStore = Compiler.analysisStore(cacheFile)
-    val analysis      = aggressive.compile1(sources, cp, compileSetup, progress, analysisStore, getAnalysis, definesClass, scalac, javac, reporter, skip, globalsCache)(log)
+    val analysis      = aggressive.compile1(sources, cp, compileSetup, analysisStore, getAnalysis, definesClass, scalac, javac, maxErrors, skip, globalsCache)(log)
     SbtAnalysis.printOutputs(analysis, outputRelations, outputProducts, cwd, classesDirectory)
     analysis
   }
