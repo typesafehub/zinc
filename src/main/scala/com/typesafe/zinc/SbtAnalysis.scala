@@ -134,6 +134,7 @@ object SbtAnalysis {
             case Some ((analysis, compileSetup)) =>
               for ((splitCacheOpt, splitAnalysis) <- analysis.groupBy(expandedMapping.get _)) {
                 splitCacheOpt match {
+                  case None =>
                   case Some(splitCache) => Compiler.analysisStore(splitCache).set(splitAnalysis, compileSetup)
                 }
               }
