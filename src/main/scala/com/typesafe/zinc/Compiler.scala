@@ -66,7 +66,8 @@ object Compiler {
    * Get or create an analysis store.
    */
   def analysisStore(cacheFile: File): AnalysisStore = {
-    analysisCache.get(cacheFile)(createAnalysisStore(cacheFile))
+    analysisCache.get(cacheFile)(
+      createAnalysisStore(cacheFile))
   }
 
   /**
@@ -82,7 +83,7 @@ object Compiler {
    * Get an analysis, lookup by cache file.
    */
   def analysis(cacheFile: File): Analysis = {
-    analysisStore(cacheFile).get map (_._1) getOrElse Analysis.Empty
+    analysisStore(cacheFile).get().map (_._1).getOrElse(Analysis.Empty)
   }
 
   /**
