@@ -27,7 +27,7 @@ object SbtAnalysis {
    * Run an analysis merge. The given analyses should share the same compile setup.
    * The merged analysis will overwrite whatever is in the combined analysis cache.
    */
-  def runMerge(combinedCache: Option[File], cacheFiles: Seq[File], 
+  def runMerge(combinedCache: Option[File], cacheFiles: Seq[File],
                mirrorAnalysis: Boolean = false,
                cwd: Option[File] = None): Unit = {
     if (cacheFiles.nonEmpty) {
@@ -103,22 +103,18 @@ object SbtAnalysis {
    */
 
   def createMultiRebasingMapper(rebase: Map[File, File]): File => Option[File] = {
-    def singleRebase(fromBase: String, toBase: String)(path: String): Option[String] =
-      if (path.startsWith(fromBase)) Some(toBase + path.substring(fromBase.length)) else None
-
-    val rebasers: List[String => Option[String]] =
-      rebase map { x: (File, File) => singleRebase(x._1.getCanonicalPath, x._2.getCanonicalPath) _ } toList
-
-    @tailrec
-    def tryRebase(path: String, rebasers: List[String => Option[String]]): Option[String] = rebasers match {
-      case Nil => Some(path)
-      case rebaser :: tail => rebaser(path) match {
-        case None => tryRebase(path, tail)
-        case fileOpt => fileOpt
-      }
+    def createSingleRebaser(fromBase: String, toBase: Option[String]): PartialFunction[String, Option[String]] = {
+      case path if path.startsWith(fromBase) => { toBase.map(_ + path.substring(fromBase.length)) }
     }
 
-    f: File => tryRebase(f.getCanonicalPath, rebasers) map { new File(_) }
+    val rebasers: List[PartialFunction[String, Option[String]]] =
+      rebase map { x: (File, File) =>
+        createSingleRebaser(x._1.getCanonicalPath, if (x._2.getPath.isEmpty) None else Some(x._2.getCanonicalPath))
+      } toList
+
+    val multiRebaser: PartialFunction[String, Option[String]] =
+      rebasers reduceLeft (_ orElse _) orElse { case s: String => Some(s) }
+    f: File => multiRebaser(f.getCanonicalPath) map { new File(_) }
   }
 
   /**
