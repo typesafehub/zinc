@@ -119,7 +119,7 @@ object Inputs {
   def defaultCacheLocation(classesDir: File) = {
     val alongside = classesDir.getParentFile / "cache" / classesDir.getName
     if (Util.checkWritable(alongside)) alongside
-    else Setup.zincCacheDir / "analysis-cache" / classesDir.getCanonicalPath
+    else Setup.zincCacheDir / "analysis-cache" / Util.pathHash(classesDir)
   }
 
   /**
