@@ -16,6 +16,7 @@ object Dist {
   lazy val settings: Seq[Setting[_]] = distSettings ++ s3PublishSettings
 
   lazy val distSettings: Seq[Setting[_]] = packagerSettings ++ Seq(
+    publishArtifact in Universal := false,
     distLibs := (fullClasspath in Compile).value.filter(cpElem => ClasspathUtilities.isArchive(cpElem.data)),
     create := { 
       (stage in Universal).value
@@ -26,10 +27,7 @@ object Dist {
       val zincJar = (packageBin in Compile).value
       val zincArtifact = (artifact in Compile).value
       zincJar -> filename(zincArtifact)
-    },
-    artifact in packageZipTarball in Universal :=  Artifact("zinc", "tgz", "tgz"),
-    publishMavenStyle := true,
-    publishArtifact in Universal := false
+    }
   )
 
   lazy val s3PublishSettings: Seq[Setting[_]] = s3Settings ++ Seq(
@@ -44,8 +42,8 @@ object Dist {
     credentials in S3.upload := Seq(Credentials(Path.userHome / ".typesafe-s3-credentials"))
   )
 
-def filename(a: Artifact) = 
-  "lib/" + a.name + a.classifier.map("-"+_).getOrElse("") + "." + a.extension
-def named(a: Attributed[File]) = 
-  a.data -> a.get(artifact.key).map(filename).getOrElse(a.data.name)
+  private def filename(a: Artifact) =
+    "lib/" + a.name + a.classifier.map("-"+_).getOrElse("") + "." + a.extension
+  private def named(a: Attributed[File]) =
+    a.data -> a.get(artifact.key).map(filename).getOrElse(a.data.name)
 }
