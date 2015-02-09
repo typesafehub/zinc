@@ -29,9 +29,7 @@ object Dist {
     },
     artifact in packageZipTarball in Universal :=  Artifact("zinc", "tgz", "tgz"),
     publishMavenStyle := true,
-    publishArtifact in Universal := false,
-    publishTo := Some("zinc repo" at "http://typesafe.artifactoryonline.com/typesafe/zinc"),
-    credentials += Credentials(Path.userHome / ".ivy2" / "artifactory-credentials")
+    publishArtifact in Universal := false
   )
 
   lazy val s3PublishSettings: Seq[Setting[_]] = s3Settings ++ Seq(
@@ -42,7 +40,8 @@ object Dist {
       Seq((packageZipTarball in Universal).value -> path)
     },
     S3.host in S3.upload := "downloads.typesafe.com.s3.amazonaws.com",
-    S3.progress in S3.upload := true
+    S3.progress in S3.upload := true,
+    credentials in S3.upload := Seq(Credentials(Path.userHome / ".typesafe-s3-credentials"))
   )
 
 def filename(a: Artifact) = 
