@@ -20,7 +20,7 @@ Maintenance of zinc is performed on a best-effort terms. We try our best to not 
 behind sbt with zinc releases but we do not guarantee it. Occasional delays can
 happen due to other priorities.
 
-If you are interested in helping with zinc maintenance or development, please contact [Grzegorz Kossakowski](grek@typesafe.com) from Typesafe.
+If you are interested in helping with zinc maintenance or development, please contact [Grzegorz Kossakowski](mailto:grek@typesafe.com) from Typesafe.
 
 Build
 -----
