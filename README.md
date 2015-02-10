@@ -6,8 +6,21 @@ Zinc is a stand-alone version of [sbt]'s incremental compiler.
 Download the [latest stable version][download].
 
 [sbt]: http://github.com/sbt/sbt
-[download]: http://downloads.typesafe.com/zinc/0.3.5.3/zinc-0.3.5.3.tgz
+[download]: http://downloads.typesafe.com/zinc/0.3.7/zinc-0.3.7.tgz
 
+Status
+------
+
+Zinc is currently in a maintenance mode. There's no active development of new features.
+New releases are meant to stay up-to-date with latest sbt releases. Zinc tries to follow
+final releases of sbt. It doesn't follow milestone releases but exceptions can be
+introduced on a case-by-case basis.
+
+Maintenance of zinc is performed on a best-effort terms. We try our best to not lag
+behind sbt with zinc releases but we do not guarantee it. Occasional delays can
+happen due to other priorities.
+
+If you are interested in helping with zinc maintenance or development, please contact [Grzegorz Kossakowski](grek@typesafe.com) from Typesafe.
 
 Build
 -----
@@ -33,6 +46,8 @@ Here's the table of final releases in 0.3.x series:
 | 0.3.5.1      | 0.13.5      | [zinc-0.3.5.1.tgz](http://downloads.typesafe.com/zinc/0.3.5.1/zinc-0.3.5.1.tgz) |
 | 0.3.5.2      | 0.13.5      | [zinc-0.3.5.2.tgz](http://downloads.typesafe.com/zinc/0.3.5.2/zinc-0.3.5.2.tgz) |
 | 0.3.5.3      | 0.13.5      | [zinc-0.3.5.3.tgz](http://downloads.typesafe.com/zinc/0.3.5.3/zinc-0.3.5.3.tgz) |
+| 0.3.6        | 0.13.6      | [zinc-0.3.5.3.tgz](http://downloads.typesafe.com/zinc/0.3.6/zinc-0.3.6.tgz)     |
+| 0.3.7        | 0.13.7      | [zinc-0.3.5.3.tgz](http://downloads.typesafe.com/zinc/0.3.7/zinc-0.3.7.tgz)     |
 
 
 Options
