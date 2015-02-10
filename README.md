@@ -46,8 +46,8 @@ Here's the table of final releases in 0.3.x series:
 | 0.3.5.1      | 0.13.5      | [zinc-0.3.5.1.tgz](http://downloads.typesafe.com/zinc/0.3.5.1/zinc-0.3.5.1.tgz) |
 | 0.3.5.2      | 0.13.5      | [zinc-0.3.5.2.tgz](http://downloads.typesafe.com/zinc/0.3.5.2/zinc-0.3.5.2.tgz) |
 | 0.3.5.3      | 0.13.5      | [zinc-0.3.5.3.tgz](http://downloads.typesafe.com/zinc/0.3.5.3/zinc-0.3.5.3.tgz) |
-| 0.3.6        | 0.13.6      | [zinc-0.3.5.3.tgz](http://downloads.typesafe.com/zinc/0.3.6/zinc-0.3.6.tgz)     |
-| 0.3.7        | 0.13.7      | [zinc-0.3.5.3.tgz](http://downloads.typesafe.com/zinc/0.3.7/zinc-0.3.7.tgz)     |
+| 0.3.6        | 0.13.6      | [zinc-0.3.6.tgz](http://downloads.typesafe.com/zinc/0.3.6/zinc-0.3.6.tgz)       |
+| 0.3.7        | 0.13.7      | [zinc-0.3.7.tgz](http://downloads.typesafe.com/zinc/0.3.7/zinc-0.3.7.tgz)       |
 
 
 Options
