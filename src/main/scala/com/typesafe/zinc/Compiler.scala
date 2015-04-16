@@ -175,14 +175,12 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
   }
 
   /**
-   * This is run deterministically, no matter what the inputs are.
    * Run a compile. The resulting analysis is also cached in memory.
-   *
-   * Modified version of the original variant to output the beginning of each compilation phase for each unit.
-   *
+   * 
+   *  Note: This variant does not report progress updates
    */
   def compile(inputs: Inputs, cwd: Option[File], reporter: xsbti.Reporter)(log: Logger): Analysis = {
-    compile(inputs, cwd, reporter, progress = Some(new SimpleCompileProgress()))(log)
+    compile(inputs, cwd, reporter, progress = None)(log)
   }
 
   /**
