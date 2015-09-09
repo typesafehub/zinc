@@ -6,7 +6,7 @@ import sbt._
 import sbt.Keys._
 
 object ZincBuild extends Build {
-  val sbtVersion = "0.13.7"
+  val sbtVersion = "0.13.8"
 
   val resolveSbtLocally = settingKey[Boolean]("resolve-sbt-locally")
 
