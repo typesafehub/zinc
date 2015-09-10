@@ -55,6 +55,7 @@ object Scriptit {
   def scriptitParser(scriptitBase: File, script: String): Parser[Seq[String]] =
     distinctParser(scriptitTests(scriptitBase, script).toSet, raw = false)
 
+  // This was copy-pasted from sbt's Defaults.scala due to sbt/sbt#1970
   def distinctParser(exs: Set[String], raw: Boolean): Parser[Seq[String]] =
     {
       import DefaultParsers._
