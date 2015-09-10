@@ -9,11 +9,22 @@ Build
 
 To build everything:
 
-    sbt> dist/create
+    sbt> create
 
 This will create a runnable zinc command at `dist/target/zinc-<VERSION>/bin/zinc`
 that can be used for command-line based testing.
 
+
+Release
+-------
+
+    sbt> s3-upload
+
+This will upload zinc zinc-x.y.z.tgz to s3.
+
+    sbt> publishSigned
+
+This will publish to Sonatype OSS.
 
 Publish Locally
 ---------------
