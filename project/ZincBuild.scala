@@ -12,7 +12,7 @@ object ZincBuild extends Build {
 
   lazy val buildSettings = Seq(
     organization := "com.typesafe.zinc",
-    version := "0.3.9",
+    version := "0.3.10-SNAPSHOT",
     scalaVersion := "2.10.5",
     crossPaths := false
   )
