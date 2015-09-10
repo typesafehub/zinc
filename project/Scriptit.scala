@@ -53,7 +53,18 @@ object Scriptit {
   }
 
   def scriptitParser(scriptitBase: File, script: String): Parser[Seq[String]] =
-    Defaults.distinctParser(scriptitTests(scriptitBase, script).toSet, raw = false)
+    distinctParser(scriptitTests(scriptitBase, script).toSet, raw = false)
+
+  def distinctParser(exs: Set[String], raw: Boolean): Parser[Seq[String]] =
+    {
+      import DefaultParsers._
+      val base = token(Space) ~> token(NotSpace - "--" examples exs)
+      val recurse = base flatMap { ex =>
+        val (matching, notMatching) = exs.partition(GlobFilter(ex).accept _)
+        distinctParser(notMatching, raw) map { result => if (raw) ex +: result else matching.toSeq ++ result }
+      }
+      recurse ?? Nil
+    }
 
   def scriptitTests(scriptitBase: File, script: String): Seq[String] =
     (scriptitBase ** script).get map (_.getParentFile) pair relativeTo(scriptitBase) map (_._2)
