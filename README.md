@@ -6,7 +6,7 @@ Zinc is a stand-alone version of [sbt]'s incremental compiler.
 Download the [latest stable version][download].
 
 [sbt]: http://github.com/sbt/sbt
-[download]: http://downloads.typesafe.com/zinc/0.3.8.1/zinc-0.3.8.1.tgz
+[download]: http://downloads.typesafe.com/zinc/0.3.9/zinc-0.3.9.tgz
 
 Status
 ------
@@ -40,6 +40,7 @@ Here's the table of final releases in 0.3.x series:
 
 | zinc version | sbt version | Download                                                                        |
 |--------------|-------------|---------------------------------------------------------------------------------|
+| 0.3.9        | 0.13.9      | [zinc-0.3.9.tgz](http://downloads.typesafe.com/zinc/0.3.9/zinc-0.3.9.tgz)       |
 | 0.3.8.1      | 0.13.8.1    | [zinc-0.3.8.1.tgz](http://downloads.typesafe.com/zinc/0.3.8.1/zinc-0.3.8.1.tgz) |
 | 0.3.8        | 0.13.8      | [zinc-0.3.8.tgz](http://downloads.typesafe.com/zinc/0.3.8/zinc-0.3.8.tgz)       |
 | 0.3.7        | 0.13.7      | [zinc-0.3.7.tgz](http://downloads.typesafe.com/zinc/0.3.7/zinc-0.3.7.tgz)       |
