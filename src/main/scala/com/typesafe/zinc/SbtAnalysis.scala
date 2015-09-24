@@ -8,7 +8,10 @@ import java.io.File
 import java.nio.charset.Charset
 import sbt.compiler.CompileOutput
 import sbt.inc.{ APIs, Analysis, Relations, SourceInfos, Stamps }
-import sbt.{ CompileSetup, Logger, Relation, Using }
+import sbt.internal.io.Using
+import sbt.internal.util.Relation
+import sbt.util.Logger
+import sbt.CompileSetup
 import xsbti.compile.SingleOutput
 
 
@@ -244,7 +247,8 @@ object SbtAnalysis {
   def printRelations(analysis: Analysis, output: Option[File], cwd: Option[File]): Unit = {
     for (file <- output) {
       val userDir = (cwd getOrElse Setup.Defaults.userDir) + "/"
-      Using.fileWriter(utf8)(file) { out =>
+      writeToFile(utf8)(file) { out =>
+      // Using.fileWriter(utf8)(file) { out =>
         def writeNoCwd(s: String) = if (s.startsWith(userDir)) out.write(s, userDir.length, s.length - userDir.length) else out.write(s)
         def printRelation(header: String, r: Relation[File, _]) {
           out.write(header + ":\n")
@@ -272,7 +276,8 @@ object SbtAnalysis {
    */
   def printProducts(analysis: Analysis, output: Option[File], classesDirectory: File): Unit = {
     for (file <- output) {
-      Using.fileWriter(utf8)(file) { out =>
+      writeToFile(utf8)(file) { out => 
+      // Using.fileWriter(utf8)(file) { out =>
         def relative(path: File) = Util.relativize(classesDirectory, path)
         import analysis.relations.srcProd
         srcProd._1s.toSeq.sorted foreach {  k =>
@@ -285,4 +290,12 @@ object SbtAnalysis {
   }
 
   private[this] val utf8 =  Charset.forName("UTF-8")
+
+  import java.io.{ BufferedWriter, FileOutputStream, OutputStreamWriter }
+  private[this] def writeToFile[T](ch: Charset)(f: File, append: Boolean = false)(op: BufferedWriter => T): T = {
+    val w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f, append), ch))
+    val r = op(w)
+    w.close()
+    r
+  }
 }

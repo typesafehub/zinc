@@ -7,11 +7,12 @@ package com.typesafe.zinc
 import java.io.File
 import java.net.URLClassLoader
 import sbt.{ ClasspathOptions, CompileOptions, CompileSetup, LoggerReporter, ScalaInstance }
-import sbt.compiler.{ AggressiveCompile, AnalyzingCompiler, CompilerCache, CompileOutput, IC }
+import sbt.compiler.{ AnalyzingCompiler, CompilerCache, CompileOutput, IC }
 import sbt.inc.{ Analysis, AnalysisStore, FileBasedStore }
-import sbt.Path._
-import xsbti.compile.{ JavaCompiler, GlobalsCache }
-import xsbti.Logger
+import sbt.io.Path._
+import xsbti.compile.GlobalsCache
+import sbt.compiler.javac.JavaCompiler
+import xsbti.{ Logger, Maybe }
 
 object Compiler {
   val CompilerInterfaceId = "compiler-interface"
@@ -68,10 +69,19 @@ object Compiler {
    */
   def newJavaCompiler(instance: ScalaInstance, javaHome: Option[File], fork: Boolean): JavaCompiler = {
     val options = ClasspathOptions.javac(false)
+    lazy val forked = new sbt.compiler.javac.ForkedJavaCompiler(javaHome)
+
     if (fork || javaHome.isDefined)
-      sbt.compiler.JavaCompiler.fork(options, instance)(AggressiveCompile.forkJavac(javaHome))
+      forked
     else
-      sbt.compiler.JavaCompiler.directOrFork(options, instance)(AggressiveCompile.forkJavac(None))
+      sbt.compiler.javac.JavaCompiler.local getOrElse forked
+
+    // if (fork || javaHome.isDefined)
+    //   new sbt.compiler.javac.ForkedJavaCompiler(javaHome)
+    //   // sbt.compiler.JavaCompiler.fork(options, instance)(AggressiveCompile.forkJavac(javaHome))
+    // else
+    //   sbt.compiler.javac.JavaCompiler.local.getOrElse
+    //   // sbt.compiler.JavaCompiler.directOrFork(options, instance)(AggressiveCompile.forkJavac(None))
   }
 
   /**
@@ -121,7 +131,7 @@ object Compiler {
     import setup.{ scalaCompiler, scalaLibrary, scalaExtra}
     val loader = scalaLoader(scalaLibrary +: scalaCompiler +: scalaExtra)
     val version = scalaVersion(loader)
-    new ScalaInstance(version.getOrElse("unknown"), loader, scalaLibrary, scalaCompiler, scalaExtra, version)
+    new ScalaInstance(version.getOrElse("unknown"), loader, scalaLibrary, scalaCompiler, scalaExtra.toArray, version)
   }
 
   /**
@@ -156,7 +166,8 @@ object Compiler {
 /**
  * A zinc compiler for incremental recompilation.
  */
-class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
+class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {// extends xsbti.compile.Compilers[AnalyzingCompiler] {
+  self =>
 
   /**
    * Run a compile. The resulting analysis is also cached in memory.
@@ -189,21 +200,72 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
   def compile(inputs: Inputs, cwd: Option[File], reporter: xsbti.Reporter, progress: Option[xsbti.compile.CompileProgress])(log: Logger): Analysis = {
     import inputs._
     if (forceClean && Compiler.analysisIsEmpty(cacheFile)) Util.cleanAllClasses(classesDirectory)
-    val getAnalysis: File => Option[Analysis] = analysisMap.get _
-    val aggressive    = new AggressiveCompile(cacheFile)
-    val cp            = autoClasspath(classesDirectory, scalac.scalaInstance.allJars, javaOnly, classpath)
-    val compileOutput = CompileOutput(classesDirectory)
-    val globalsCache  = Compiler.residentCache
-    val skip          = false
-    val incOpts       = incOptions.options
-    val compileSetup  = new CompileSetup(compileOutput, new CompileOptions(scalacOptions, javacOptions), scalac.scalaInstance.actualVersion, compileOrder, incOpts.nameHashing)
-    val analysisStore = Compiler.analysisStore(cacheFile)
-    val analysis      = aggressive.compile1(sources, cp, compileSetup, progress, analysisStore, getAnalysis, definesClass, scalac, javac, reporter, skip, globalsCache, incOpts)(log)
+
+    val realProgress = progress
+    val realReporter = reporter
+
+    def o2m[T](opt: Option[T]): Maybe[T] = opt map (Maybe.just(_)) getOrElse (Maybe.nothing())
+
+    val in: xsbti.compile.Inputs[Analysis, AnalyzingCompiler] =
+      new xsbti.compile.Inputs[Analysis, AnalyzingCompiler] {
+        override val compilers = new xsbti.compile.Compilers[AnalyzingCompiler] {
+          override val scalac = self.scalac
+          override val javac = new xsbti.compile.JavaCompiler {
+            override def compileWithReporter(sources: Array[File], classpath: Array[File], output: xsbti.compile.Output, options: Array[String], reporter: xsbti.Reporter, log: Logger): Unit = {
+              self.javac.run(sources, options)(log, reporter)
+            }
+          }
+        }
+        override val options = new xsbti.compile.Options {
+          override val classpath = inputs.classpath.toArray
+          override val sources = inputs.sources.toArray
+          override val output = CompileOutput(inputs.classesDirectory)
+          override val options = inputs.scalacOptions.toArray
+          override val javacOptions = inputs.javacOptions.toArray
+          override val order = inputs.compileOrder
+        }
+        override val setup = new xsbti.compile.Setup[Analysis] {
+          override def analysisMap(file: File): Maybe[Analysis] =
+            o2m(inputs.analysisMap get file)
+          override def cache(): xsbti.compile.GlobalsCache = Compiler.residentCache
+          override val cacheFile = inputs.cacheFile
+          override def definesClass(f: File) = new xsbti.compile.DefinesClass {
+            override def apply(className: String): Boolean =
+              inputs.analysisMap get f match {
+                case Some(a) => a.relations.definesClass(className).nonEmpty
+                case _       => false
+              }
+          }
+          override def incrementalCompilerOptions(): java.util.Map[String,String] = ???
+          override val progress: Maybe[xsbti.compile.CompileProgress] = o2m(realProgress)
+          override val reporter: xsbti.Reporter = realReporter
+          override val skip: Boolean = false
+
+        }
+      }
+
+    val analysis = IC.compile(in, log)
     if (mirrorAnalysis) {
       SbtAnalysis.printRelations(analysis, Some(new File(cacheFile.getPath() + ".relations")), cwd)
     }
     SbtAnalysis.printOutputs(analysis, outputRelations, outputProducts, cwd, classesDirectory)
     analysis
+
+    // val getAnalysis: File => Option[Analysis] = analysisMap.get _
+    // val aggressive    = new AggressiveCompile(cacheFile)
+    // val cp            = autoClasspath(classesDirectory, scalac.scalaInstance.allJars, javaOnly, classpath)
+    // val compileOutput = CompileOutput(classesDirectory)
+    // val globalsCache  = Compiler.residentCache
+    // val skip          = false
+    // val incOpts       = incOptions.options
+    // val compileSetup  = new CompileSetup(compileOutput, new CompileOptions(scalacOptions, javacOptions), scalac.scalaInstance.actualVersion, compileOrder, incOpts.nameHashing)
+    // val analysisStore = Compiler.analysisStore(cacheFile)
+    // val analysis      = aggressive.compile1(sources, cp, compileSetup, progress, analysisStore, getAnalysis, definesClass, scalac, javac, reporter, skip, globalsCache, incOpts)(log)
+    // if (mirrorAnalysis) {
+    //   SbtAnalysis.printRelations(analysis, Some(new File(cacheFile.getPath() + ".relations")), cwd)
+    // }
+    // SbtAnalysis.printOutputs(analysis, outputRelations, outputProducts, cwd, classesDirectory)
+    // analysis
   }
 
   /**
