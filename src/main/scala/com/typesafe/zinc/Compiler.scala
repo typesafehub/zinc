@@ -151,6 +151,7 @@ object Compiler {
    * Get the compiler interface for this compiler setup. Compile it if not already cached.
    */
   def compilerInterface(setup: Setup, scalaInstance: ScalaInstance, log: Logger): File = {
+    ???
     val dir = setup.cacheDir / interfaceId(scalaInstance.actualVersion)
     val interfaceJar = dir / (CompilerInterfaceId + ".jar")
     if (!interfaceJar.exists) {
