@@ -151,7 +151,6 @@ object Compiler {
    * Get the compiler interface for this compiler setup. Compile it if not already cached.
    */
   def compilerInterface(setup: Setup, scalaInstance: ScalaInstance, log: Logger): File = {
-    ???
     val dir = setup.cacheDir / interfaceId(scalaInstance.actualVersion)
     val interfaceJar = dir / (CompilerInterfaceId + ".jar")
     if (!interfaceJar.exists) {
@@ -237,7 +236,7 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {// extends xsbti
                 case _       => false
               }
           }
-          override def incrementalCompilerOptions(): java.util.Map[String,String] = ???
+          override val incrementalCompilerOptions: java.util.Map[String,String] = new java.util.HashMap()
           override val progress: Maybe[xsbti.compile.CompileProgress] = o2m(realProgress)
           override val reporter: xsbti.Reporter = realReporter
           override val skip: Boolean = false
