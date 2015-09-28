@@ -2,7 +2,7 @@
  * Copyright (C) 2012 Typesafe, Inc. <http://www.typesafe.com>
  */
 
-val incrementalVersion = "0.1.0-M1-dd31dc44a08e21ad94cd80ca6bae9f27d974ddf4"
+val incrementalVersion = "0.1.0-M1-5af07474b3a83e38b5f7edf29c44bef40fb84a55"
 
 val resolveSbtLocally = settingKey[Boolean]("resolve-sbt-locally")
 
@@ -21,10 +21,8 @@ lazy val zinc = Project(
     resolvers += (if (resolveSbtLocally.value) Resolver.mavenLocal else Opts.resolver.sonatypeSnapshots),
     libraryDependencies ++= Seq(
       "org.scala-sbt" %% "incrementalcompiler" % incrementalVersion,
-      "com.typesafe.sbt" % "sbt-interface" % "0.13.9",
-      "org.scala-lang" % "scala-compiler" % "2.10.5",
-      "org.scala-lang" % "scala-library" % "2.10.5",
-      "com.typesafe.sbt" % "compiler-interface" % "0.13.9" classifier "sources",
+      "org.scala-sbt" % "compiler-interface" % incrementalVersion,
+      "org.scala-sbt" % "compiler-bridge_2.10" % incrementalVersion classifier "sources",
       "com.martiansoftware" % "nailgun-server" % "0.9.1" % "optional"
     ),
     // we need to fork because in unit tests we set usejavacp = true which means

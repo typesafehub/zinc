@@ -52,8 +52,8 @@ object Setup {
   val ScalaCompiler            = JarFile("scala-compiler")
   val ScalaLibrary             = JarFile("scala-library")
   val ScalaReflect             = JarFile("scala-reflect")
-  val SbtInterface             = JarFile("sbt-interface")
-  val CompilerInterfaceSources = JarFile("compiler-interface", "sources")
+  val SbtInterface             = JarFile("compiler-interface")
+  val CompilerInterfaceSources = JarFile("compiler-bridge_2.10", "sources")
 
   /**
    * Create compiler setup from command-line settings.

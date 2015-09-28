@@ -131,7 +131,7 @@ object Compiler {
     import setup.{ scalaCompiler, scalaLibrary, scalaExtra}
     val loader = scalaLoader(scalaLibrary +: scalaCompiler +: scalaExtra)
     val version = scalaVersion(loader)
-    new ScalaInstance(version.getOrElse("unknown"), loader, scalaLibrary, scalaCompiler, scalaExtra.toArray, version)
+    new ScalaInstance(version.getOrElse("unknown"), loader, scalaLibrary, scalaCompiler, (scalaLibrary +: scalaCompiler +: scalaExtra).toArray, version)
   }
 
   /**
@@ -217,7 +217,7 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {// extends xsbti
           }
         }
         override val options = new xsbti.compile.Options {
-          override val classpath = inputs.classpath.toArray
+          override val classpath = autoClasspath(classesDirectory, scalac.scalaInstance.allJars, javaOnly, inputs.classpath).toArray
           override val sources = inputs.sources.toArray
           override val output = CompileOutput(inputs.classesDirectory)
           override val options = inputs.scalacOptions.toArray
