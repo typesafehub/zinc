@@ -200,17 +200,12 @@ object Setup {
     requireFile(setup.compilerInterfaceSrc, log)
   }
 
-  def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
-    val p = new java.io.PrintWriter(f)
-    try { op(p) } finally { p.close() }
-  }
-
   /**
    * Check file exists. Log error if it doesn't.
    */
   def requireFile(file: File, log: sbt.util.Logger): Boolean = {
     val exists = file.exists
-    if (!exists) log.error("Required file not found: " + file)
+    if (!exists) log.error("Required file not found: " + file.getName)
     exists
   }
 

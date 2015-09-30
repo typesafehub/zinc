@@ -285,12 +285,4 @@ object SbtAnalysis {
   }
 
   private[this] val utf8 =  Charset.forName("UTF-8")
-
-  import java.io.{ BufferedWriter, FileOutputStream, OutputStreamWriter }
-  private[this] def writeToFile[T](ch: Charset)(f: File, append: Boolean = false)(op: BufferedWriter => T): T = {
-    val w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f, append), ch))
-    val r = op(w)
-    w.close()
-    r
-  }
 }

@@ -7,10 +7,11 @@ package com.typesafe.zinc
 import java.io.File
 import java.net.URLClassLoader
 import sbt.internal.inc.{ Analysis, AnalysisStore, AnalyzingCompiler, ClasspathOptions, CompileOptions, CompileOutput, CompileSetup, CompilerCache, FileBasedStore, IC, LoggerReporter, ScalaInstance }
+import sbt.internal.inc.classpath.ClasspathUtilities
 import sbt.internal.inc.javac.{ ForkedJavaCompiler, JavaCompiler }
 import sbt.io.Path._
-import xsbti.compile.GlobalsCache
-import xsbti.{ Logger, Maybe }
+import xsbti.compile.{ CompileProgress, Compilers, DefinesClass, GlobalsCache, Output }
+import xsbti.{ Logger, Maybe, Reporter }
 
 object Compiler {
   val CompilerInterfaceId = "compiler-interface"
@@ -73,13 +74,6 @@ object Compiler {
       forked
     else
       JavaCompiler.local getOrElse forked
-
-    // if (fork || javaHome.isDefined)
-    //   new sbt.compiler.javac.ForkedJavaCompiler(javaHome)
-    //   // sbt.compiler.JavaCompiler.fork(options, instance)(AggressiveCompile.forkJavac(javaHome))
-    // else
-    //   sbt.compiler.javac.JavaCompiler.local.getOrElse
-    //   // sbt.compiler.JavaCompiler.directOrFork(options, instance)(AggressiveCompile.forkJavac(None))
   }
 
   /**
@@ -129,13 +123,14 @@ object Compiler {
     import setup.{ scalaCompiler, scalaLibrary, scalaExtra}
     val loader = scalaLoader(scalaLibrary +: scalaCompiler +: scalaExtra)
     val version = scalaVersion(loader)
-    new ScalaInstance(version.getOrElse("unknown"), loader, scalaLibrary, scalaCompiler, (scalaLibrary +: scalaCompiler +: scalaExtra).toArray, version)
+    val allJars = (scalaLibrary +: scalaCompiler +: scalaExtra).toArray
+    new ScalaInstance(version.getOrElse("unknown"), loader, scalaLibrary, scalaCompiler, allJars, version)
   }
 
   /**
    * Create a new classloader with the root loader as parent (to avoid zinc itself being included).
    */
-  def scalaLoader(jars: Seq[File]) = new URLClassLoader(toURLs(jars), sbt.internal.inc.classpath.ClasspathUtilities.rootLoader)
+  def scalaLoader(jars: Seq[File]) = new URLClassLoader(toURLs(jars), ClasspathUtilities.rootLoader)
 
   /**
    * Get the actual scala version from the compiler.properties in a classloader.
@@ -164,7 +159,7 @@ object Compiler {
 /**
  * A zinc compiler for incremental recompilation.
  */
-class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {// extends xsbti.compile.Compilers[AnalyzingCompiler] {
+class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
   self =>
 
   /**
@@ -188,59 +183,18 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {// extends xsbti
    * 
    *  Note: This variant does not report progress updates
    */
-  def compile(inputs: Inputs, cwd: Option[File], reporter: xsbti.Reporter)(log: Logger): Analysis = {
+  def compile(inputs: Inputs, cwd: Option[File], reporter: Reporter)(log: Logger): Analysis = {
     compile(inputs, cwd, reporter, progress = None)(log)
   }
 
   /**
    * Run a compile. The resulting analysis is also cached in memory.
    */
-  def compile(inputs: Inputs, cwd: Option[File], reporter: xsbti.Reporter, progress: Option[xsbti.compile.CompileProgress])(log: Logger): Analysis = {
+  def compile(inputs: Inputs, cwd: Option[File], reporter: Reporter, progress: Option[CompileProgress])(log: Logger): Analysis = {
     import inputs._
     if (forceClean && Compiler.analysisIsEmpty(cacheFile)) Util.cleanAllClasses(classesDirectory)
 
-    val realProgress = progress
-    val realReporter = reporter
-
-    def o2m[T](opt: Option[T]): Maybe[T] = opt map (Maybe.just(_)) getOrElse (Maybe.nothing())
-
-    val in: xsbti.compile.Inputs[Analysis, AnalyzingCompiler] =
-      new xsbti.compile.Inputs[Analysis, AnalyzingCompiler] {
-        override val compilers = new xsbti.compile.Compilers[AnalyzingCompiler] {
-          override val scalac = self.scalac
-          override val javac = new xsbti.compile.JavaCompiler {
-            override def compileWithReporter(sources: Array[File], classpath: Array[File], output: xsbti.compile.Output, options: Array[String], reporter: xsbti.Reporter, log: Logger): Unit = {
-              self.javac.run(sources, options)(log, reporter)
-            }
-          }
-        }
-        override val options = new xsbti.compile.Options {
-          override val classpath = autoClasspath(classesDirectory, scalac.scalaInstance.allJars, javaOnly, inputs.classpath).toArray
-          override val sources = inputs.sources.toArray
-          override val output = CompileOutput(inputs.classesDirectory)
-          override val options = inputs.scalacOptions.toArray
-          override val javacOptions = inputs.javacOptions.toArray
-          override val order = inputs.compileOrder
-        }
-        override val setup = new xsbti.compile.Setup[Analysis] {
-          override def analysisMap(file: File): Maybe[Analysis] =
-            o2m(inputs.analysisMap get file)
-          override def cache(): xsbti.compile.GlobalsCache = Compiler.residentCache
-          override val cacheFile = inputs.cacheFile
-          override def definesClass(f: File) = new xsbti.compile.DefinesClass {
-            override def apply(className: String): Boolean =
-              inputs.analysisMap get f match {
-                case Some(a) => a.relations.definesClass(className).nonEmpty
-                case _       => false
-              }
-          }
-          override val incrementalCompilerOptions: java.util.Map[String,String] = new java.util.HashMap()
-          override val progress: Maybe[xsbti.compile.CompileProgress] = o2m(realProgress)
-          override val reporter: xsbti.Reporter = realReporter
-          override val skip: Boolean = false
-
-        }
-      }
+    val in: xsbti.compile.Inputs[Analysis, AnalyzingCompiler] = makeInputs(inputs, cwd, reporter, progress, log)
 
     val analysis = IC.compile(in, log)
     if (mirrorAnalysis) {
@@ -248,22 +202,6 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {// extends xsbti
     }
     SbtAnalysis.printOutputs(analysis, outputRelations, outputProducts, cwd, classesDirectory)
     analysis
-
-    // val getAnalysis: File => Option[Analysis] = analysisMap.get _
-    // val aggressive    = new AggressiveCompile(cacheFile)
-    // val cp            = autoClasspath(classesDirectory, scalac.scalaInstance.allJars, javaOnly, classpath)
-    // val compileOutput = CompileOutput(classesDirectory)
-    // val globalsCache  = Compiler.residentCache
-    // val skip          = false
-    // val incOpts       = incOptions.options
-    // val compileSetup  = new CompileSetup(compileOutput, new CompileOptions(scalacOptions, javacOptions), scalac.scalaInstance.actualVersion, compileOrder, incOpts.nameHashing)
-    // val analysisStore = Compiler.analysisStore(cacheFile)
-    // val analysis      = aggressive.compile1(sources, cp, compileSetup, progress, analysisStore, getAnalysis, definesClass, scalac, javac, reporter, skip, globalsCache, incOpts)(log)
-    // if (mirrorAnalysis) {
-    //   SbtAnalysis.printRelations(analysis, Some(new File(cacheFile.getPath() + ".relations")), cwd)
-    // }
-    // SbtAnalysis.printOutputs(analysis, outputRelations, outputProducts, cwd, classesDirectory)
-    // analysis
   }
 
   /**
@@ -278,4 +216,46 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {// extends xsbti
   }
 
   override def toString = "Compiler(Scala %s)" format scalac.scalaInstance.actualVersion
+
+  private[this] def makeInputs(inputs: Inputs, cwd: Option[File], compileReporter: Reporter, compileProgress: Option[CompileProgress], log: Logger): xsbti.compile.Inputs[Analysis, AnalyzingCompiler] = {
+    def o2m[T](opt: Option[T]): Maybe[T] = opt map (Maybe.just(_)) getOrElse Maybe.nothing()
+
+    import inputs._
+    new xsbti.compile.Inputs[Analysis, AnalyzingCompiler] {
+      override val compilers = new Compilers[AnalyzingCompiler] {
+        override val scalac = self.scalac
+        override val javac = new xsbti.compile.JavaCompiler {
+          override def compileWithReporter(sources: Array[File], classpath: Array[File], output: Output, options: Array[String], reporter: Reporter, log: Logger): Unit = {
+            // FIXME: Classpath???
+            self.javac.run(sources, options)(log, reporter)
+          }
+        }
+      }
+      override val options = new xsbti.compile.Options {
+        override val classpath = autoClasspath(classesDirectory, scalac.scalaInstance.allJars, javaOnly, inputs.classpath).toArray
+        override val sources = inputs.sources.toArray
+        override val output = CompileOutput(inputs.classesDirectory)
+        override val options = inputs.scalacOptions.toArray
+        override val javacOptions = inputs.javacOptions.toArray
+        override val order = inputs.compileOrder
+      }
+      override val setup = new xsbti.compile.Setup[Analysis] {
+        override def analysisMap(file: File): Maybe[Analysis] =
+          o2m(inputs.analysisMap get file)
+        override val cache: GlobalsCache = Compiler.residentCache
+        override val cacheFile = inputs.cacheFile
+        override def definesClass(f: File) = new DefinesClass {
+          override def apply(className: String): Boolean =
+            inputs.analysisMap get f match {
+              case Some(a) => a.relations.definesClass(className).nonEmpty
+              case _       => false
+            }
+        }
+        override val incrementalCompilerOptions: java.util.Map[String,String] = new java.util.HashMap()
+        override val progress: Maybe[CompileProgress] = o2m(compileProgress)
+        override val reporter: Reporter = compileReporter
+        override val skip: Boolean = false
+      }
+    }
+  }
 }
