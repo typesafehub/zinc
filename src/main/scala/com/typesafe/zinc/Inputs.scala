@@ -6,8 +6,7 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.util.{ List => JList, Map => JMap }
-import sbt.compiler.IC
-import sbt.inc.{ Analysis, Locate }
+import sbt.internal.inc.{ Analysis, IC, Locate }
 import sbt.io.Path._
 import scala.collection.JavaConverters._
 import xsbti.compile.CompileOrder

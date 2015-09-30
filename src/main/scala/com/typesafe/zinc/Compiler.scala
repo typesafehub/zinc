@@ -6,12 +6,10 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.net.URLClassLoader
-import sbt.{ ClasspathOptions, CompileOptions, CompileSetup, LoggerReporter, ScalaInstance }
-import sbt.compiler.{ AnalyzingCompiler, CompilerCache, CompileOutput, IC }
-import sbt.inc.{ Analysis, AnalysisStore, FileBasedStore }
+import sbt.internal.inc.{ Analysis, AnalysisStore, AnalyzingCompiler, ClasspathOptions, CompileOptions, CompileOutput, CompileSetup, CompilerCache, FileBasedStore, IC, LoggerReporter, ScalaInstance }
+import sbt.internal.inc.javac.{ ForkedJavaCompiler, JavaCompiler }
 import sbt.io.Path._
 import xsbti.compile.GlobalsCache
-import sbt.compiler.javac.JavaCompiler
 import xsbti.{ Logger, Maybe }
 
 object Compiler {
@@ -69,12 +67,12 @@ object Compiler {
    */
   def newJavaCompiler(instance: ScalaInstance, javaHome: Option[File], fork: Boolean): JavaCompiler = {
     val options = ClasspathOptions.javac(false)
-    lazy val forked = new sbt.compiler.javac.ForkedJavaCompiler(javaHome)
+    lazy val forked = new ForkedJavaCompiler(javaHome)
 
     if (fork || javaHome.isDefined)
       forked
     else
-      sbt.compiler.javac.JavaCompiler.local getOrElse forked
+      JavaCompiler.local getOrElse forked
 
     // if (fork || javaHome.isDefined)
     //   new sbt.compiler.javac.ForkedJavaCompiler(javaHome)
@@ -137,7 +135,7 @@ object Compiler {
   /**
    * Create a new classloader with the root loader as parent (to avoid zinc itself being included).
    */
-  def scalaLoader(jars: Seq[File]) = new URLClassLoader(toURLs(jars), sbt.classpath.ClasspathUtilities.rootLoader)
+  def scalaLoader(jars: Seq[File]) = new URLClassLoader(toURLs(jars), sbt.internal.inc.classpath.ClasspathUtilities.rootLoader)
 
   /**
    * Get the actual scala version from the compiler.properties in a classloader.

@@ -6,8 +6,8 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.util.{ List => JList }
-import sbt.inc.ClassfileManager
-import sbt.inc.IncOptions.{ Default => DefaultIncOptions }
+import sbt.internal.inc.ClassfileManager
+import sbt.internal.inc.IncOptions.{ Default => DefaultIncOptions }
 import sbt.util.Level
 import sbt.io.Path._
 import scala.collection.JavaConverters._
@@ -133,8 +133,8 @@ case class IncOptions(
       apiDumpDirectory, transactional, backup, DefaultIncOptions.recompileOnMacroDef,
       DefaultIncOptions.nameHashing)
   }
-  def options: sbt.inc.IncOptions = {
-    sbt.inc.IncOptions(
+  def options: sbt.internal.inc.IncOptions = {
+    sbt.internal.inc.IncOptions(
       transitiveStep,
       recompileAllFraction,
       relationsDebug,
