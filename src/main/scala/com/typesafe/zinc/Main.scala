@@ -100,8 +100,6 @@ object Main {
     } catch {
       case e: CompileFailed =>
         log.error("Compile failed " + Util.timing(startTime))
-        if (!vinputs.incOptions.transactional)
-          Util.cleanAllClasses(vinputs.classesDirectory)
         sys.exit(1)
       case e: Exception =>
         if (isDebug) e.printStackTrace

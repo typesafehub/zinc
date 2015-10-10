@@ -2,7 +2,7 @@
  * Copyright (C) 2012 Typesafe, Inc. <http://www.typesafe.com>
  */
 
-val incrementalVersion = "0.1.0-M1-168cb7a4877917e01917e35b9b82a62afe5c2a01"
+val incrementalVersion = "0.1.0-M1-826f7c3944195f978063af84a414eb9ecede16c6"
 
 val resolveSbtLocally = settingKey[Boolean]("resolve-sbt-locally")
 
@@ -22,9 +22,10 @@ lazy val zinc = Project(
     libraryDependencies ++= Seq(
       "org.scala-sbt" %% "incrementalcompiler" % incrementalVersion,
       "org.scala-sbt" % "compiler-interface" % incrementalVersion,
-      "org.scala-sbt" % "compiler-bridge_2.10" % incrementalVersion classifier "sources",
+      "org.scala-sbt" % "compiler-bridge_2.10" % incrementalVersion sources(),
       "com.martiansoftware" % "nailgun-server" % "0.9.1" % "optional"
     ),
-    scalacOptions ++= Seq("-feature", "-deprecation", "-Xlint")
+    scalacOptions ++= Seq("-feature", "-deprecation", "-Xlint"),
+    classpathTypes += "src"
   )
 )

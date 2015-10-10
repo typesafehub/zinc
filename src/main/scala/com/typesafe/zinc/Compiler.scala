@@ -251,7 +251,7 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
               case _       => false
             }
         }
-        override val incrementalCompilerOptions: java.util.Map[String,String] = sbt.internal.inc.IncOptions.toStringMap(inputs.incOptions.options)
+        override val incrementalCompilerOptions: xsbti.compile.IncOptions = inputs.incOptions.options
         override val progress: Maybe[CompileProgress] = o2m(compileProgress)
         override val reporter: Reporter = compileReporter
         override val skip: Boolean = false

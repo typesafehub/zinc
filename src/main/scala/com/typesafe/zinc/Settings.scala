@@ -7,11 +7,13 @@ package com.typesafe.zinc
 import java.io.File
 import java.util.{ List => JList }
 import sbt.internal.inc.ClassfileManager
-import sbt.internal.inc.IncOptions.{ Default => DefaultIncOptions }
 import sbt.util.Level
 import sbt.io.Path._
 import scala.collection.JavaConverters._
-import xsbti.compile.CompileOrder
+import xsbti.Maybe
+import xsbti.compile.{ CompileOrder, IncOptions => SbtIncOptions,
+  IncOptionsUtil, ClassfileManagerType, TransactionalMangerType,
+  DeleteImmediatelyManagerType }
 
 /**
  * All parsed command-line options.
@@ -103,56 +105,53 @@ object SbtJars {
   def fromPath(path: JList[File]): SbtJars = fromPath(path.asScala)
 }
 
+import IncOptions._
+
 /**
  * Wrapper around incremental compiler options.
  */
 case class IncOptions(
-  transitiveStep: Int            = DefaultIncOptions.transitiveStep,
-  recompileAllFraction: Double   = DefaultIncOptions.recompileAllFraction,
-  relationsDebug: Boolean        = DefaultIncOptions.relationsDebug,
-  apiDebug: Boolean              = DefaultIncOptions.apiDebug,
-  apiDiffContextSize: Int        = DefaultIncOptions.apiDiffContextSize,
-  apiDumpDirectory: Option[File] = DefaultIncOptions.apiDumpDirectory,
-  transactional: Boolean         = false,
-  backup: Option[File]           = None,
-  recompileOnMacroDef: Boolean   = DefaultIncOptions.recompileOnMacroDef,
-  nameHashing: Boolean           = DefaultIncOptions.nameHashing
+  transitiveStep: Int                  = DefaultIncOptions.transitiveStep,
+  recompileAllFraction: Double         = DefaultIncOptions.recompileAllFraction,
+  relationsDebug: Boolean              = DefaultIncOptions.relationsDebug,
+  apiDebug: Boolean                    = DefaultIncOptions.apiDebug,
+  apiDiffContextSize: Int              = DefaultIncOptions.apiDiffContextSize,
+  apiDumpDirectory: Option[File]       = m2o(DefaultIncOptions.apiDumpDirectory),
+  transactional: Boolean               = false,
+  backup: Option[File]                 = None,
+  recompileOnMacroDef: Option[Boolean] = m2o(DefaultIncOptions.recompileOnMacroDef) map { x => x },
+  nameHashing: Boolean                 = DefaultIncOptions.nameHashing,
+  antStyle: Boolean                    = DefaultIncOptions.antStyle,
+  extra: Map[String, String]           = Map(DefaultIncOptions.extra.asScala.toSeq: _*)
 ) {
-  @deprecated("Use the primary constructor instead.", "0.3.5.2")
-  def this(
-    transitiveStep: Int,
-    recompileAllFraction: Double,
-    relationsDebug: Boolean,
-    apiDebug: Boolean,
-    apiDiffContextSize: Int,
-    apiDumpDirectory: Option[File],
-    transactional: Boolean,
-    backup: Option[File]
-  ) = {
-    this(transitiveStep, recompileAllFraction, relationsDebug, apiDebug, apiDiffContextSize,
-      apiDumpDirectory, transactional, backup, DefaultIncOptions.recompileOnMacroDef,
-      DefaultIncOptions.nameHashing)
-  }
-  def options: sbt.internal.inc.IncOptions = {
-    sbt.internal.inc.IncOptions(
+  def options: SbtIncOptions = {
+    new SbtIncOptions(
       transitiveStep,
       recompileAllFraction,
       relationsDebug,
       apiDebug,
       apiDiffContextSize,
-      apiDumpDirectory,
-      classfileManager,
-      recompileOnMacroDef,
-      nameHashing
+      o2m(apiDumpDirectory),
+      o2m(classfileManager),
+      o2m(recompileOnMacroDef map { x => x }),
+      nameHashing,
+      antStyle,
+      extra.asJava
     )
   }
 
-  def classfileManager: () => ClassfileManager = {
+  def classfileManager: Option[ClassfileManagerType] = {
     if (transactional && backup.isDefined)
-      ClassfileManager.transactional(backup.get)
+      Option(new TransactionalMangerType(backup.get, sbt.util.Logger.Null))
     else
-      DefaultIncOptions.newClassfileManager
+      m2o(DefaultIncOptions.classfileManagerType)
   }
+}
+object IncOptions {
+  val DefaultIncOptions = IncOptionsUtil.defaultIncOptions
+
+  def m2o[S](m: Maybe[S]): Option[S] = if (m.isDefined) Some(m.get) else None
+  def o2m[S](o: Option[S]): Maybe[S] = o match { case Some(v) => Maybe.just(v); case None => Maybe.nothing() }
 }
 
 /**
@@ -225,7 +224,7 @@ object Settings {
     boolean(   "-transactional",               "Restore previous class files on failure",    (s: Settings) => s.copy(incOptions = s.incOptions.copy(transactional = true))),
     file(      "-backup", "directory",         "Backup location (if transactional)",         (s: Settings, f: File) => s.copy(incOptions = s.incOptions.copy(backup = Some(f)))),
     boolean(   "-recompileOnMacroDefDisabled", "Disable recompilation of all dependencies of a macro def",
-      (s: Settings) => s.copy(incOptions = s.incOptions.copy(recompileOnMacroDef = false))),
+      (s: Settings) => s.copy(incOptions = s.incOptions.copy(recompileOnMacroDef = Option(false)))),
     boolean(   "-no-name-hashing",             "Disable improved incremental compilation algorithm",
       (s: Settings) => s.copy(incOptions = s.incOptions.copy(nameHashing = false))),
 
