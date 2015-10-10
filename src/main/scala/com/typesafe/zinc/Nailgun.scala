@@ -6,7 +6,7 @@ package com.typesafe.zinc
 
 import com.martiansoftware.nailgun.{ Alias, AliasManager, NGContext, NGServer }
 import java.io.File
-import sbt.Path
+import sbt.io.Path
 
 class Nailgun // for classOf
 

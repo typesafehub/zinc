@@ -5,7 +5,7 @@
 package com.typesafe.zinc
 
 import java.io.File
-import sbt.Level
+import sbt.util.Level
 import xsbti.CompileFailed
 
 /**

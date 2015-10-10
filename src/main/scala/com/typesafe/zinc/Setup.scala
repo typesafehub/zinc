@@ -6,7 +6,7 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.util.{ List => JList }
-import sbt.Path._
+import sbt.io.Path._
 import scala.collection.JavaConverters._
 
 /**
@@ -52,8 +52,8 @@ object Setup {
   val ScalaCompiler            = JarFile("scala-compiler")
   val ScalaLibrary             = JarFile("scala-library")
   val ScalaReflect             = JarFile("scala-reflect")
-  val SbtInterface             = JarFile("sbt-interface")
-  val CompilerInterfaceSources = JarFile("compiler-interface", "sources")
+  val SbtInterface             = JarFile("compiler-interface")
+  val CompilerInterfaceSources = JarFile("compiler-bridge_2.10", "sources")
 
   /**
    * Create compiler setup from command-line settings.
@@ -193,7 +193,7 @@ object Setup {
   /**
    * Verify that necessary jars exist.
    */
-  def verify(setup: Setup, log: sbt.Logger): Boolean = {
+  def verify(setup: Setup, log: sbt.util.Logger): Boolean = {
     requireFile(setup.scalaCompiler, log) &&
     requireFile(setup.scalaLibrary, log) &&
     requireFile(setup.sbtInterface, log) &&
@@ -203,7 +203,7 @@ object Setup {
   /**
    * Check file exists. Log error if it doesn't.
    */
-  def requireFile(file: File, log: sbt.Logger): Boolean = {
+  def requireFile(file: File, log: sbt.util.Logger): Boolean = {
     val exists = file.exists
     if (!exists) log.error("Required file not found: " + file.getName)
     exists
@@ -292,7 +292,7 @@ object Setup {
    * Debug output for inputs.
    */
   def debug(setup: Setup, log: xsbti.Logger): Unit = {
-    show(setup, s => log.debug(sbt.Logger.f0(s)))
+    show(setup, s => log.debug(sbt.util.Logger.f0(s)))
   }
 
   /**
