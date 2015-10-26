@@ -10,7 +10,7 @@ import sbt.internal.inc.{ Analysis, AnalysisStore, AnalyzingCompiler, ClasspathO
 import sbt.internal.inc.classpath.ClasspathUtilities
 import sbt.internal.inc.javac.{ ForkedJavaCompiler, JavaCompiler }
 import sbt.io.Path._
-import xsbti.compile.{ CompileProgress, Compilers, DefinesClass, GlobalsCache, Output }
+import xsbti.compile.{ CompileProgress, Compilers, DefinesClass, GlobalsCache, IncOptions, Output }
 import xsbti.{ Logger, Maybe, Reporter }
 
 object Compiler {
@@ -51,7 +51,7 @@ object Compiler {
   def create(setup: Setup, log: Logger): Compiler = {
     val instance     = scalaInstance(setup)
     val interfaceJar = compilerInterface(setup, instance, log)
-    val scalac       = newScalaCompiler(instance, interfaceJar, log)
+    val scalac       = newScalaCompiler(instance, interfaceJar)
     val javac        = newJavaCompiler(instance, setup.javaHome, setup.forkJava)
     new Compiler(scalac, javac)
   }
@@ -59,8 +59,8 @@ object Compiler {
   /**
    * Create a new scala compiler.
    */
-  def newScalaCompiler(instance: ScalaInstance, interfaceJar: File, log: Logger): AnalyzingCompiler = {
-    IC.newScalaCompiler(instance, interfaceJar, ClasspathOptions.boot, log)
+  def newScalaCompiler(instance: ScalaInstance, interfaceJar: File): AnalyzingCompiler = {
+    IC.newScalaCompiler(instance, interfaceJar, ClasspathOptions.boot)
   }
 
   /**
@@ -180,7 +180,7 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
 
   /**
    * Run a compile. The resulting analysis is also cached in memory.
-   * 
+   *
    *  Note: This variant does not report progress updates
    */
   def compile(inputs: Inputs, cwd: Option[File], reporter: Reporter)(log: Logger): Analysis = {
@@ -201,6 +201,16 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
       SbtAnalysis.printRelations(analysis, Some(new File(cacheFile.getPath() + ".relations")), cwd)
     }
     SbtAnalysis.printOutputs(analysis, outputRelations, outputProducts, cwd, classesDirectory)
+
+    val compileSetup = new CompileSetup(
+      in.options.output,
+      new CompileOptions(in.options.options, in.options.javacOptions),
+      in.compilers.scalac.scalaInstance.version,
+      in.options.order,
+      inputs.incOptions.nameHashing
+    )
+    Compiler.analysisStore(cacheFile).set(analysis, compileSetup)
+
     analysis
   }
 
@@ -251,7 +261,7 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
               case _       => false
             }
         }
-        override val incrementalCompilerOptions: java.util.Map[String,String] = sbt.internal.inc.IncOptions.toStringMap(inputs.incOptions.options)
+        override val incrementalCompilerOptions: IncOptions = inputs.incOptions
         override val progress: Maybe[CompileProgress] = o2m(compileProgress)
         override val reporter: Reporter = compileReporter
         override val skip: Boolean = false

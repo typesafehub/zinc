@@ -9,7 +9,8 @@ import java.util.{ List => JList, Map => JMap }
 import sbt.internal.inc.{ Analysis, IC, Locate }
 import sbt.io.Path._
 import scala.collection.JavaConverters._
-import xsbti.compile.CompileOrder
+import xsbti.compile.{ CompileOrder, IncOptions, IncOptionsUtil }
+import xsbti.Maybe
 
 /**
  * All inputs for a compile run.
@@ -80,12 +81,11 @@ object Inputs {
     val cacheFile        = normalise(analysisCache.getOrElse(defaultCacheLocation(classesDirectory)))
     val upstreamAnalysis = analysisCacheMap map { case (k, v) => (normalise(k), normalise(v)) }
     val analysisMap      = (cp map { file => (file, analysisFor(file, classes, upstreamAnalysis)) }).toMap
-    val incOpts          = updateIncOptions(incOptions, classesDirectory, normalise)
     val printRelations   = outputRelations map normalise
     val printProducts    = outputProducts map normalise
     new Inputs(
       cp, srcs, classes, scalacOptions, javacOptions, cacheFile, analysisMap, forceClean, Locate.definesClass,
-      javaOnly, compileOrder, incOpts, printRelations, printProducts, mirrorAnalysis
+      javaOnly, compileOrder, incOptions, printRelations, printProducts, mirrorAnalysis
     )
   }
 
@@ -132,7 +132,7 @@ object Inputs {
     compileOrder: String,
     mirrorAnalysisCache: Boolean): Inputs =
     create(classpath, sources, classesDirectory, scalacOptions, javacOptions,
-      analysisCache, analysisMap, compileOrder, IncOptions(), mirrorAnalysisCache)
+      analysisCache, analysisMap, compileOrder, IncOptionsUtil.defaultIncOptions, mirrorAnalysisCache)
 
   /**
    * By default the cache location is relative to the classes directory (for example, target/classes/../cache/classes).
@@ -157,26 +157,6 @@ object Inputs {
    */
   def analysisFor(file: File, exclude: File, mapped: Map[File, File]): Analysis = {
     cacheFor(file, exclude, mapped) map Compiler.analysis getOrElse Analysis.Empty
-  }
-
-  /**
-   * Normalise files and default the backup directory.
-   */
-  def updateIncOptions(incOptions: IncOptions, classesDir: File, normalise: File => File): IncOptions = {
-    incOptions.copy(
-      apiDumpDirectory = incOptions.apiDumpDirectory map normalise,
-      backup = getBackupDirectory(incOptions, classesDir, normalise)
-    )
-  }
-
-  /**
-   * Get normalised, default if not specified, backup directory. If transactional.
-   */
-  def getBackupDirectory(incOptions: IncOptions, classesDir: File, normalise: File => File): Option[File] = {
-    if (incOptions.transactional)
-      Some(normalise(incOptions.backup.getOrElse(defaultBackupLocation(classesDir))))
-    else
-      None
   }
 
   /**
@@ -224,8 +204,7 @@ object Inputs {
       "debug api"              -> incOptions.apiDebug,
       "api dump"               -> incOptions.apiDumpDirectory,
       "api diff context size"  -> incOptions.apiDiffContextSize,
-      "transactional"          -> incOptions.transactional,
-      "backup directory"       -> incOptions.backup,
+      "classfile manager type" -> incOptions.classfileManagerType,
       "recompile on macro def" -> incOptions.recompileOnMacroDef,
       "name hashing"           -> incOptions.nameHashing
     )
