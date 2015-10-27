@@ -49,19 +49,26 @@ object Setup {
   val HomeProperty = prop("home")
   val DirProperty  = prop("dir")
 
-  val ScalaCompiler            = JarFile("scala-compiler")
-  val ScalaLibrary             = JarFile("scala-library")
-  val ScalaReflect             = JarFile("scala-reflect")
-  val SbtInterface             = JarFile("compiler-interface")
-  val CompilerInterfaceSources = JarFile("compiler-bridge_2.10", "sources")
+  val ScalaCompiler                   = JarFile("scala-compiler")
+  val ScalaLibrary                    = JarFile("scala-library")
+  val ScalaReflect                    = JarFile("scala-reflect")
+  val SbtInterface                    = JarFile("compiler-interface")
+  val CompilerInterfaceSourcesGeneric = JarFile("compiler-bridge_2.10", "sources")
+  val CompilerInterfaceSources211     = JarFile("compiler-bridge_2.11", "sources")
 
   /**
    * Create compiler setup from command-line settings.
    */
   def apply(settings: Settings): Setup = {
     val scalaJars = selectScalaJars(settings.scala)
-    val (sbtInterface, compilerInterfaceSrc) = selectSbtJars(settings.sbt)
+    val scalaVersion = scalaVersionFromJars(scalaJars)
+    val (sbtInterface, compilerInterfaceSrc) = selectSbtJars(settings.sbt, scalaVersion)
     setup(scalaJars.compiler, scalaJars.library, scalaJars.extra, sbtInterface, compilerInterfaceSrc, settings.javaHome, settings.forkJava)
+  }
+
+  private def scalaVersionFromJars(scalaJars: ScalaJars): Option[String] = {
+    val jars = scalaJars.compiler +: scalaJars.library +: scalaJars.extra
+    Compiler.scalaVersion(Compiler.scalaLoader(jars))
   }
 
   /**
@@ -129,7 +136,7 @@ object Setup {
     forkJava: Boolean): Setup =
   {
     val scalaJars = selectScalaJars(scalaLocation)
-    val (sbtInterface, compilerInterfaceSrc) = selectSbtJars(sbtJars)
+    val (sbtInterface, compilerInterfaceSrc) = selectSbtJars(sbtJars, scalaVersionFromJars(scalaJars))
     setup(
       scalaJars.compiler,
       scalaJars.library,
@@ -179,9 +186,15 @@ object Setup {
   /**
    * Select the sbt jars.
    */
-  def selectSbtJars(sbt: SbtJars): (File, File) = {
+  def selectSbtJars(sbt: SbtJars, scalaVersion: Option[String]): (File, File) = {
     val sbtInterface = sbt.sbtInterface getOrElse Defaults.sbtInterface
-    val compilerInterfaceSrc = sbt.compilerInterfaceSrc getOrElse Defaults.compilerInterfaceSrc
+    val compilerInterfaceSrc = sbt.compilerInterfaceSrc getOrElse {
+      scalaVersion match {
+        case Some(scalaVersion) if scalaVersion startsWith "2.11" => Defaults.compilerInterfaceSrc211
+        case _                                                    => Defaults.compilerInterfaceSrcGeneric
+      }
+    }
+
     (sbtInterface, compilerInterfaceSrc)
   }
 
@@ -219,8 +232,9 @@ object Setup {
     val zincDir  = Util.optFileProperty(DirProperty).getOrElse(userHome / ("." + Command)).getCanonicalFile
     val zincHome = Util.optFileProperty(HomeProperty).map(_.getCanonicalFile)
 
-    val sbtInterface         = optLibOrDefault(zincHome, SbtInterface)
-    val compilerInterfaceSrc = optLibOrDefault(zincHome, CompilerInterfaceSources)
+    val sbtInterface                = optLibOrDefault(zincHome, SbtInterface)
+    val compilerInterfaceSrcGeneric = optLibOrDefault(zincHome, CompilerInterfaceSourcesGeneric)
+    val compilerInterfaceSrc211     = optLibOrDefault(zincHome, CompilerInterfaceSources211)
 
     val scalaCompiler        = optLibOrDefault(zincHome, ScalaCompiler)
     val scalaLibrary         = optLibOrDefault(zincHome, ScalaLibrary)
