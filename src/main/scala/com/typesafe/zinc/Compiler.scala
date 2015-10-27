@@ -236,8 +236,19 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
         override val scalac = self.scalac
         override val javac = new xsbti.compile.JavaCompiler {
           override def compileWithReporter(sources: Array[File], classpath: Array[File], output: Output, options: Array[String], reporter: Reporter, log: Logger): Unit = {
-            // FIXME: Classpath???
-            self.javac.run(sources, options)(log, reporter)
+            def normalizeSlash(s: String) = s.replace(File.separatorChar, '/')
+            // TODO: This will replace the output directory that may have been specified in `options`. Is this what we want?
+            val outputDirectory =
+              output match {
+                case single: xsbti.compile.SingleOutput => Array("-d", normalizeSlash(single.outputDirectory.getAbsolutePath))
+                case _                                  => throw new RuntimeException("Javac doesn't support multiple output directories")
+              }
+            // TODO: This will replace the classpath that may have been specified in `options`. Is this what we want?
+            val cp =
+              if (classpath.nonEmpty) Array("-cp", classpath.map(e => normalizeSlash(e.getAbsolutePath)).mkString(":"))
+              else Array.empty
+            val completeOptions = options ++ outputDirectory ++ cp
+            self.javac.run(sources, completeOptions)(log, reporter)
           }
         }
       }
