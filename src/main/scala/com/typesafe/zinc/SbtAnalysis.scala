@@ -6,9 +6,9 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.nio.charset.Charset
-import sbt.compiler.CompileOutput
-import sbt.inc.{ APIs, Analysis, Relations, SourceInfos, Stamps }
-import sbt.{ CompileSetup, Logger, Relation, Using }
+import sbt.internal.inc.{ APIs, Analysis, CompileOutput, CompileSetup, Relations, SourceInfos, Stamps }
+import sbt.internal.util.Relation
+import sbt.util.Logger
 import xsbti.compile.SingleOutput
 
 

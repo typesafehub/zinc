@@ -6,37 +6,39 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.util.{ List => JList }
-import sbt.inc.ClassfileManager
-import sbt.inc.IncOptions.{ Default => DefaultIncOptions }
-import sbt.Level
-import sbt.Path._
+import sbt.internal.inc.ClassfileManager
+import sbt.util.Level
+import sbt.io.Path._
 import scala.collection.JavaConverters._
-import xsbti.compile.CompileOrder
+import xsbti.compile.{ CompileOrder, IncOptions, IncOptionsUtil, TransactionalMangerType }
+import xsbti.Maybe
 
 /**
  * All parsed command-line options.
  */
 case class Settings(
-  help: Boolean              = false,
-  version: Boolean           = false,
-  quiet: Boolean             = false,
-  logLevel: Level.Value      = Level.Info,
-  color: Boolean             = true,
-  sources: Seq[File]         = Seq.empty,
-  classpath: Seq[File]       = Seq.empty,
-  classesDirectory: File     = new File("."),
-  scala: ScalaLocation       = ScalaLocation(),
-  scalacOptions: Seq[String] = Seq.empty,
-  javaHome: Option[File]     = None,
-  forkJava: Boolean          = false,
-  javaOnly: Boolean          = false,
-  javacOptions: Seq[String]  = Seq.empty,
-  compileOrder: CompileOrder = CompileOrder.Mixed,
-  sbt: SbtJars               = SbtJars(),
-  incOptions: IncOptions     = IncOptions(),
-  analysis: AnalysisOptions  = AnalysisOptions(),
-  analysisUtil: AnalysisUtil = AnalysisUtil(),
-  properties: Seq[String]    = Seq.empty
+  help: Boolean                 = false,
+  version: Boolean              = false,
+  quiet: Boolean                = false,
+  logLevel: Level.Value         = Level.Info,
+  color: Boolean                = true,
+  sources: Seq[File]            = Seq.empty,
+  classpath: Seq[File]          = Seq.empty,
+  classesDirectory: File        = new File("."),
+  scala: ScalaLocation          = ScalaLocation(),
+  scalacOptions: Seq[String]    = Seq.empty,
+  javaHome: Option[File]        = None,
+  forkJava: Boolean             = false,
+  javaOnly: Boolean             = false,
+  javacOptions: Seq[String]     = Seq.empty,
+  compileOrder: CompileOrder    = CompileOrder.Mixed,
+  sbt: SbtJars                  = SbtJars(),
+  transactional: Boolean        = false,
+  backupDirectory: Option[File] = None,
+  incOptions: IncOptions        = IncOptionsUtil.defaultIncOptions,
+  analysis: AnalysisOptions     = AnalysisOptions(),
+  analysisUtil: AnalysisUtil    = AnalysisUtil(),
+  properties: Seq[String]       = Seq.empty
 )
 
 /**
@@ -104,58 +106,6 @@ object SbtJars {
 }
 
 /**
- * Wrapper around incremental compiler options.
- */
-case class IncOptions(
-  transitiveStep: Int            = DefaultIncOptions.transitiveStep,
-  recompileAllFraction: Double   = DefaultIncOptions.recompileAllFraction,
-  relationsDebug: Boolean        = DefaultIncOptions.relationsDebug,
-  apiDebug: Boolean              = DefaultIncOptions.apiDebug,
-  apiDiffContextSize: Int        = DefaultIncOptions.apiDiffContextSize,
-  apiDumpDirectory: Option[File] = DefaultIncOptions.apiDumpDirectory,
-  transactional: Boolean         = false,
-  backup: Option[File]           = None,
-  recompileOnMacroDef: Boolean   = DefaultIncOptions.recompileOnMacroDef,
-  nameHashing: Boolean           = DefaultIncOptions.nameHashing
-) {
-  @deprecated("Use the primary constructor instead.", "0.3.5.2")
-  def this(
-    transitiveStep: Int,
-    recompileAllFraction: Double,
-    relationsDebug: Boolean,
-    apiDebug: Boolean,
-    apiDiffContextSize: Int,
-    apiDumpDirectory: Option[File],
-    transactional: Boolean,
-    backup: Option[File]
-  ) = {
-    this(transitiveStep, recompileAllFraction, relationsDebug, apiDebug, apiDiffContextSize,
-      apiDumpDirectory, transactional, backup, DefaultIncOptions.recompileOnMacroDef,
-      DefaultIncOptions.nameHashing)
-  }
-  def options: sbt.inc.IncOptions = {
-    sbt.inc.IncOptions(
-      transitiveStep,
-      recompileAllFraction,
-      relationsDebug,
-      apiDebug,
-      apiDiffContextSize,
-      apiDumpDirectory,
-      classfileManager,
-      recompileOnMacroDef,
-      nameHashing
-    )
-  }
-
-  def classfileManager: () => ClassfileManager = {
-    if (transactional && backup.isDefined)
-      ClassfileManager.transactional(backup.get)
-    else
-      DefaultIncOptions.newClassfileManager
-  }
-}
-
-/**
  * Configuration for sbt analysis and analysis output options.
  */
 case class AnalysisOptions(
@@ -216,18 +166,23 @@ object Settings {
     file(      "-compiler-interface", "file",  "Specify compiler interface sources jar",     (s: Settings, f: File) => s.copy(sbt = s.sbt.copy(compilerInterfaceSrc = Some(f)))),
 
     header("Incremental compiler options:"),
-    int(       "-transitive-step", "n",        "Steps before transitive closure",            (s: Settings, i: Int) => s.copy(incOptions = s.incOptions.copy(transitiveStep = i))),
-    fraction(  "-recompile-all-fraction", "x", "Limit before recompiling all sources",       (s: Settings, d: Double) => s.copy(incOptions = s.incOptions.copy(recompileAllFraction = d))),
-    boolean(   "-debug-relations",             "Enable debug logging of analysis relations", (s: Settings) => s.copy(incOptions = s.incOptions.copy(relationsDebug = true))),
-    boolean(   "-debug-api",                   "Enable analysis API debugging",              (s: Settings) => s.copy(incOptions = s.incOptions.copy(apiDebug = true))),
-    file(      "-api-dump", "directory",       "Destination for analysis API dump",          (s: Settings, f: File) => s.copy(incOptions = s.incOptions.copy(apiDumpDirectory = Some(f)))),
-    int(       "-api-diff-context-size", "n",  "Diff context size (in lines) for API debug", (s: Settings, i: Int) => s.copy(incOptions = s.incOptions.copy(apiDiffContextSize = i))),
-    boolean(   "-transactional",               "Restore previous class files on failure",    (s: Settings) => s.copy(incOptions = s.incOptions.copy(transactional = true))),
-    file(      "-backup", "directory",         "Backup location (if transactional)",         (s: Settings, f: File) => s.copy(incOptions = s.incOptions.copy(backup = Some(f)))),
+    int(       "-transitive-step", "n",        "Steps before transitive closure",            (s: Settings, i: Int) => s.copy(incOptions = s.incOptions.withTransitiveStep(i))),
+    fraction(  "-recompile-all-fraction", "x", "Limit before recompiling all sources",       (s: Settings, d: Double) => s.copy(incOptions = s.incOptions.withRecompileAllFraction(d))),
+    boolean(   "-debug-relations",             "Enable debug logging of analysis relations", (s: Settings) => s.copy(incOptions = s.incOptions.withRelationsDebug(true))),
+    boolean(   "-debug-api",                   "Enable analysis API debugging",              (s: Settings) => s.copy(incOptions = s.incOptions.withApiDebug(true))),
+    file(      "-api-dump", "directory",       "Destination for analysis API dump",          (s: Settings, f: File) => s.copy(incOptions = s.incOptions.withApiDumpDirectory(Maybe.just(f)))),
+    int(       "-api-diff-context-size", "n",  "Diff context size (in lines) for API debug", (s: Settings, i: Int) => s.copy(incOptions = s.incOptions.withApiDiffContextSize(i))),
+    boolean(   "-transactional",               "Restore previous class files on failure",    (s: Settings) => s.copy(incOptions = s.incOptions.withClassfileManagerType(Maybe.just(new TransactionalMangerType(Inputs.defaultBackupLocation(s.classesDirectory), new Util.SilentLogger))))),
+    file(      "-backup", "directory",         "Backup location (if transactional)",         (s: Settings, f: File) => {
+      if (s.incOptions.classfileManagerType.isDefined) s.incOptions.classfileManagerType.get match {
+        case t: TransactionalMangerType => s.copy(incOptions = s.incOptions.withClassfileManagerType(Maybe.just(t.withBackupDirectory(f))))
+        case _                          => s
+      } else s
+    }),
     boolean(   "-recompileOnMacroDefDisabled", "Disable recompilation of all dependencies of a macro def",
-      (s: Settings) => s.copy(incOptions = s.incOptions.copy(recompileOnMacroDef = false))),
+      (s: Settings) => s.copy(incOptions = s.incOptions.withRecompileOnMacroDef(Maybe.just(false)))),
     boolean(   "-no-name-hashing",             "Disable improved incremental compilation algorithm",
-      (s: Settings) => s.copy(incOptions = s.incOptions.copy(nameHashing = false))),
+      (s: Settings) => s.copy(incOptions = s.incOptions.withNameHashing(false))),
 
     header("Analysis options:"),
     file(      "-analysis-cache", "file",      "Cache file for compile analysis",            (s: Settings, f: File) => s.copy(analysis = s.analysis.copy(cache = Some(f)))),
@@ -302,6 +257,8 @@ object Settings {
    * Normalise all relative paths to the actual current working directory, if provided.
    */
   def normalise(settings: Settings, cwd: Option[File]): Settings = {
+    def o2m[T](opt: Option[T]): Maybe[T] = opt map (Maybe.just(_)) getOrElse Maybe.nothing()
+    def m2o[T](may: Maybe[T]): Option[T] = if (may.isDefined) Some(may.get) else None
     if (cwd.isEmpty) settings
     else {
       import settings._
@@ -321,10 +278,16 @@ object Settings {
           sbtInterface = Util.normaliseOpt(cwd)(sbt.sbtInterface),
           compilerInterfaceSrc = Util.normaliseOpt(cwd)(sbt.compilerInterfaceSrc)
         ),
-        incOptions = incOptions.copy(
-          apiDumpDirectory = Util.normaliseOpt(cwd)(incOptions.apiDumpDirectory),
-          backup = Util.normaliseOpt(cwd)(incOptions.backup)
-        ),
+        incOptions = incOptions.
+          withApiDumpDirectory(o2m(Util.normaliseOpt(cwd)(m2o(incOptions.apiDumpDirectory)))).
+          withClassfileManagerType({
+            if (incOptions.classfileManagerType.isDefined) {
+              incOptions.classfileManagerType.get match {
+                case t: TransactionalMangerType => Maybe.just(t.withBackupDirectory(Util.normalise(cwd)(t.backupDirectory)))
+                case other                      => Maybe.just(other)
+              }
+            } else Maybe.nothing()
+          }),
         analysis = analysis.copy(
           cache = Util.normaliseOpt(cwd)(analysis.cache),
           cacheMap = Util.normaliseMap(cwd)(analysis.cacheMap),
