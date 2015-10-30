@@ -2,7 +2,7 @@
  * Copyright (C) 2012 Typesafe, Inc. <http://www.typesafe.com>
  */
 
-val incrementalVersion = "0.1.0-M1-28b0fa40021bdb755efbba033265601dee065a3d-SNAPSHOT"
+val incrementalVersion = "0.1.0-M1-d1cb4a65b93215b01192e9d3f9edcbacccbda160"
 
 val resolveSbtLocally = settingKey[Boolean]("resolve-sbt-locally")
 
