@@ -95,8 +95,8 @@ object SbtJars {
    */
   def fromPath(path: Seq[File]): SbtJars = {
     val sbtInterface = path find (_.getName matches Setup.SbtInterface.pattern)
-    val compilerInterfaceSrc = path find (_.getName matches Setup.CompilerInterfaceSourcesGeneric.pattern)
-    SbtJars(sbtInterface, compilerInterfaceSrc)
+    val compilerBridgeSrc = path find (_.getName matches Setup.CompilerBridgeSources211.pattern)
+    SbtJars(sbtInterface, compilerBridgeSrc)
   }
 
   /**

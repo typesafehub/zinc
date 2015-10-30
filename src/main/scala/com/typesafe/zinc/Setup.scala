@@ -49,12 +49,12 @@ object Setup {
   val HomeProperty = prop("home")
   val DirProperty  = prop("dir")
 
-  val ScalaCompiler                   = JarFile("scala-compiler")
-  val ScalaLibrary                    = JarFile("scala-library")
-  val ScalaReflect                    = JarFile("scala-reflect")
-  val SbtInterface                    = JarFile("compiler-interface")
-  val CompilerInterfaceSourcesGeneric = JarFile("compiler-bridge_2.10", "sources")
-  val CompilerInterfaceSources211     = JarFile("compiler-bridge_2.11", "sources")
+  val ScalaCompiler               = JarFile("scala-compiler")
+  val ScalaLibrary                = JarFile("scala-library")
+  val ScalaReflect                = JarFile("scala-reflect")
+  val SbtInterface                = JarFile("compiler-interface")
+  val CompilerBridgeSources210 = JarFile("compiler-bridge_2.10", "sources")
+  val CompilerBridgeSources211 = JarFile("compiler-bridge_2.11", "sources")
 
   /**
    * Create compiler setup from command-line settings.
@@ -191,8 +191,10 @@ object Setup {
     val sbtInterface = sbt.sbtInterface getOrElse Defaults.sbtInterface
     val compilerInterfaceSrc = sbt.compilerInterfaceSrc getOrElse {
       scalaVersion match {
-        case Some(scalaVersion) if scalaVersion startsWith "2.11" => Defaults.compilerInterfaceSrc211
-        case _                                                    => Defaults.compilerInterfaceSrcGeneric
+        case Some(scalaVersion) if (scalaVersion startsWith "2.10.") ||
+          (scalaVersion startsWith "2.9.") ||
+          (scalaVersion startsWith "2.8.") => Defaults.compilerBridgeSrc210
+        case _  => Defaults.compilerBridgeSrc211
       }
     }
 
@@ -233,9 +235,9 @@ object Setup {
     val zincDir  = Util.optFileProperty(DirProperty).getOrElse(userHome / ("." + Command)).getCanonicalFile
     val zincHome = Util.optFileProperty(HomeProperty).map(_.getCanonicalFile)
 
-    val sbtInterface                = optLibOrDefault(zincHome, SbtInterface)
-    val compilerInterfaceSrcGeneric = optLibOrDefault(zincHome, CompilerInterfaceSourcesGeneric)
-    val compilerInterfaceSrc211     = optLibOrDefault(zincHome, CompilerInterfaceSources211)
+    val sbtInterface            = optLibOrDefault(zincHome, SbtInterface)
+    val compilerBridgeSrc210 = optLibOrDefault(zincHome, CompilerBridgeSources210)
+    val compilerBridgeSrc211 = optLibOrDefault(zincHome, CompilerBridgeSources211)
 
     val scalaCompiler        = optLibOrDefault(zincHome, ScalaCompiler)
     val scalaLibrary         = optLibOrDefault(zincHome, ScalaLibrary)
