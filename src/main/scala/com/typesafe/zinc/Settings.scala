@@ -10,7 +10,7 @@ import sbt.internal.inc.ClassfileManager
 import sbt.util.Level
 import sbt.io.Path._
 import scala.collection.JavaConverters._
-import xsbti.compile.{ CompileOrder, IncOptions, IncOptionsUtil, TransactionalMangerType }
+import xsbti.compile.{ CompileOrder, IncOptions, IncOptionsUtil, TransactionalManagerType }
 import xsbti.Maybe
 
 /**
@@ -172,10 +172,10 @@ object Settings {
     boolean(   "-debug-api",                   "Enable analysis API debugging",              (s: Settings) => s.copy(incOptions = s.incOptions.withApiDebug(true))),
     file(      "-api-dump", "directory",       "Destination for analysis API dump",          (s: Settings, f: File) => s.copy(incOptions = s.incOptions.withApiDumpDirectory(Maybe.just(f)))),
     int(       "-api-diff-context-size", "n",  "Diff context size (in lines) for API debug", (s: Settings, i: Int) => s.copy(incOptions = s.incOptions.withApiDiffContextSize(i))),
-    boolean(   "-transactional",               "Restore previous class files on failure",    (s: Settings) => s.copy(incOptions = s.incOptions.withClassfileManagerType(Maybe.just(new TransactionalMangerType(Inputs.defaultBackupLocation(s.classesDirectory), new Util.SilentLogger))))),
+    boolean(   "-transactional",               "Restore previous class files on failure",    (s: Settings) => s.copy(incOptions = s.incOptions.withClassfileManagerType(Maybe.just(new TransactionalManagerType(Inputs.defaultBackupLocation(s.classesDirectory), new Util.SilentLogger))))),
     file(      "-backup", "directory",         "Backup location (if transactional)",         (s: Settings, f: File) => {
       if (s.incOptions.classfileManagerType.isDefined) s.incOptions.classfileManagerType.get match {
-        case t: TransactionalMangerType => s.copy(incOptions = s.incOptions.withClassfileManagerType(Maybe.just(t.withBackupDirectory(f))))
+        case t: TransactionalManagerType => s.copy(incOptions = s.incOptions.withClassfileManagerType(Maybe.just(t.withBackupDirectory(f))))
         case _                          => s
       } else s
     }),
@@ -283,8 +283,8 @@ object Settings {
           withClassfileManagerType({
             if (incOptions.classfileManagerType.isDefined) {
               incOptions.classfileManagerType.get match {
-                case t: TransactionalMangerType => Maybe.just(t.withBackupDirectory(Util.normalise(cwd)(t.backupDirectory)))
-                case other                      => Maybe.just(other)
+                case t: TransactionalManagerType => Maybe.just(t.withBackupDirectory(Util.normalise(cwd)(t.backupDirectory)))
+                case other                       => Maybe.just(other)
               }
             } else Maybe.nothing()
           }),
