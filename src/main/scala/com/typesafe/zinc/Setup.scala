@@ -6,7 +6,7 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.util.{ List => JList }
-import sbt.Path._
+import sbt.io.Path._
 import scala.collection.JavaConverters._
 
 /**
@@ -49,19 +49,26 @@ object Setup {
   val HomeProperty = prop("home")
   val DirProperty  = prop("dir")
 
-  val ScalaCompiler            = JarFile("scala-compiler")
-  val ScalaLibrary             = JarFile("scala-library")
-  val ScalaReflect             = JarFile("scala-reflect")
-  val SbtInterface             = JarFile("sbt-interface")
-  val CompilerInterfaceSources = JarFile("compiler-interface", "sources")
+  val ScalaCompiler               = JarFile("scala-compiler")
+  val ScalaLibrary                = JarFile("scala-library")
+  val ScalaReflect                = JarFile("scala-reflect")
+  val SbtInterface                = JarFile("compiler-interface")
+  val CompilerBridgeSources210 = JarFile("compiler-bridge_2.10", "sources")
+  val CompilerBridgeSources211 = JarFile("compiler-bridge_2.11", "sources")
 
   /**
    * Create compiler setup from command-line settings.
    */
   def apply(settings: Settings): Setup = {
     val scalaJars = selectScalaJars(settings.scala)
-    val (sbtInterface, compilerInterfaceSrc) = selectSbtJars(settings.sbt)
+    val scalaVersion = scalaVersionFromJars(scalaJars)
+    val (sbtInterface, compilerInterfaceSrc) = selectSbtJars(settings.sbt, scalaVersion)
     setup(scalaJars.compiler, scalaJars.library, scalaJars.extra, sbtInterface, compilerInterfaceSrc, settings.javaHome, settings.forkJava)
+  }
+
+  private def scalaVersionFromJars(scalaJars: ScalaJars): Option[String] = {
+    val jars = scalaJars.compiler +: scalaJars.library +: scalaJars.extra
+    Compiler.scalaVersion(Compiler.scalaLoader(jars))
   }
 
   /**
@@ -129,7 +136,7 @@ object Setup {
     forkJava: Boolean): Setup =
   {
     val scalaJars = selectScalaJars(scalaLocation)
-    val (sbtInterface, compilerInterfaceSrc) = selectSbtJars(sbtJars)
+    val (sbtInterface, compilerInterfaceSrc) = selectSbtJars(sbtJars, scalaVersionFromJars(scalaJars))
     setup(
       scalaJars.compiler,
       scalaJars.library,
@@ -162,7 +169,8 @@ object Setup {
     ScalaJars(
       scala.compiler getOrElse jars.compiler,
       scala.library getOrElse jars.library,
-      scala.extra ++ jars.extra
+      if (scala.extra.isEmpty) jars.extra
+      else scala.extra
     )
   }
 
@@ -179,9 +187,17 @@ object Setup {
   /**
    * Select the sbt jars.
    */
-  def selectSbtJars(sbt: SbtJars): (File, File) = {
+  def selectSbtJars(sbt: SbtJars, scalaVersion: Option[String]): (File, File) = {
     val sbtInterface = sbt.sbtInterface getOrElse Defaults.sbtInterface
-    val compilerInterfaceSrc = sbt.compilerInterfaceSrc getOrElse Defaults.compilerInterfaceSrc
+    val compilerInterfaceSrc = sbt.compilerInterfaceSrc getOrElse {
+      scalaVersion match {
+        case Some(scalaVersion) if (scalaVersion startsWith "2.10.") ||
+          (scalaVersion startsWith "2.9.") ||
+          (scalaVersion startsWith "2.8.") => Defaults.compilerBridgeSrc210
+        case _  => Defaults.compilerBridgeSrc211
+      }
+    }
+
     (sbtInterface, compilerInterfaceSrc)
   }
 
@@ -193,7 +209,7 @@ object Setup {
   /**
    * Verify that necessary jars exist.
    */
-  def verify(setup: Setup, log: sbt.Logger): Boolean = {
+  def verify(setup: Setup, log: sbt.util.Logger): Boolean = {
     requireFile(setup.scalaCompiler, log) &&
     requireFile(setup.scalaLibrary, log) &&
     requireFile(setup.sbtInterface, log) &&
@@ -203,7 +219,7 @@ object Setup {
   /**
    * Check file exists. Log error if it doesn't.
    */
-  def requireFile(file: File, log: sbt.Logger): Boolean = {
+  def requireFile(file: File, log: sbt.util.Logger): Boolean = {
     val exists = file.exists
     if (!exists) log.error("Required file not found: " + file.getName)
     exists
@@ -219,8 +235,9 @@ object Setup {
     val zincDir  = Util.optFileProperty(DirProperty).getOrElse(userHome / ("." + Command)).getCanonicalFile
     val zincHome = Util.optFileProperty(HomeProperty).map(_.getCanonicalFile)
 
-    val sbtInterface         = optLibOrDefault(zincHome, SbtInterface)
-    val compilerInterfaceSrc = optLibOrDefault(zincHome, CompilerInterfaceSources)
+    val sbtInterface            = optLibOrDefault(zincHome, SbtInterface)
+    val compilerBridgeSrc210 = optLibOrDefault(zincHome, CompilerBridgeSources210)
+    val compilerBridgeSrc211 = optLibOrDefault(zincHome, CompilerBridgeSources211)
 
     val scalaCompiler        = optLibOrDefault(zincHome, ScalaCompiler)
     val scalaLibrary         = optLibOrDefault(zincHome, ScalaLibrary)
@@ -292,7 +309,7 @@ object Setup {
    * Debug output for inputs.
    */
   def debug(setup: Setup, log: xsbti.Logger): Unit = {
-    show(setup, s => log.debug(sbt.Logger.f0(s)))
+    show(setup, s => log.debug(sbt.util.Logger.f0(s)))
   }
 
   /**

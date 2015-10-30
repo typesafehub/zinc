@@ -5,7 +5,9 @@
 package com.typesafe.zinc
 
 import java.io.File
-import sbt.{ ConsoleLogger, Hash, IO, Level, Logger }
+import sbt.internal.util.ConsoleLogger
+import sbt.util.{ Level, Logger }
+import sbt.io.{ Hash, IO }
 
 object Util {
 
@@ -127,7 +129,7 @@ object Util {
    * Clean all class files from a directory.
    */
   def cleanAllClasses(dir: File): Unit = {
-    import sbt.Path._
+    import sbt.io.Path._
     IO.delete((dir ** "*.class").get)
   }
 
