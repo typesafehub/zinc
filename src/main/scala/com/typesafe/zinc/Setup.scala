@@ -169,7 +169,8 @@ object Setup {
     ScalaJars(
       scala.compiler getOrElse jars.compiler,
       scala.library getOrElse jars.library,
-      scala.extra ++ jars.extra
+      if (scala.extra.isEmpty) jars.extra
+      else scala.extra
     )
   }
 
