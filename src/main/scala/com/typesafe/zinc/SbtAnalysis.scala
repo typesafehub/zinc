@@ -6,10 +6,10 @@ package com.typesafe.zinc
 
 import java.io.File
 import java.nio.charset.Charset
-import sbt.internal.inc.{ APIs, Analysis, CompileOutput, CompileSetup, Relations, SourceInfos, Stamps }
+import sbt.internal.inc.{ APIs, Analysis, CompileOutput, Relations, SourceInfos, Stamps }
 import sbt.internal.util.Relation
 import sbt.util.Logger
-import xsbti.compile.SingleOutput
+import xsbti.compile.{ SingleOutput, MiniSetup, CompileAnalysis }
 
 
 object SbtAnalysis {
@@ -55,10 +55,10 @@ object SbtAnalysis {
    * Merge analyses and setups into one analysis and setup.
    * Currently the compile setups are not actually merged, last one wins.
    */
-  def mergeAnalyses(cacheFiles: Seq[File]): Option[(Analysis, CompileSetup)] = {
-    val analysesAndSetups: Seq[(Analysis, CompileSetup)] = cacheFiles flatMap { Compiler.analysisStore(_).get() }
+  def mergeAnalyses(cacheFiles: Seq[File]): Option[(Analysis, MiniSetup)] = {
+    val analysesAndSetups: Seq[(Analysis, MiniSetup)] = cacheFiles flatMap { Compiler.analysisStore(_).get() }
     val mergedAnalysis = Analysis.merge(analysesAndSetups map {_._1})
-    analysesAndSetups.lastOption map { x: (Analysis, CompileSetup) => (mergedAnalysis, x._2) }
+    analysesAndSetups.lastOption map { x: (Analysis, MiniSetup) => (mergedAnalysis, x._2) }
   }
 
   /**
@@ -166,9 +166,9 @@ object SbtAnalysis {
   /**
    * Rebase the output directory of a compile setup.
    */
-  def rebaseSetup(setup: CompileSetup, mapper: File => Option[File]): CompileSetup = {
+  def rebaseSetup(setup: MiniSetup, mapper: File => Option[File]): MiniSetup = {
     val output = Some(setup.output) collect { case single: SingleOutput => single.outputDirectory }
-    output flatMap mapper map { dir => new CompileSetup(CompileOutput(dir), setup.options, setup.compilerVersion, setup.order, setup.nameHashing) } getOrElse setup
+    output flatMap mapper map { dir => new MiniSetup(CompileOutput(dir), setup.options, setup.compilerVersion, setup.order, setup.nameHashing) } getOrElse setup
   }
 
   /**
@@ -233,7 +233,7 @@ object SbtAnalysis {
   /**
    * Print readable analysis outputs, if configured.
    */
-  def printOutputs(analysis: Analysis, outputRelations: Option[File], outputProducts: Option[File], cwd: Option[File], classesDirectory: File): Unit = {
+  def printOutputs(analysis: CompileAnalysis, outputRelations: Option[File], outputProducts: Option[File], cwd: Option[File], classesDirectory: File): Unit = {
     printRelations(analysis, outputRelations, cwd)
     printProducts(analysis, outputProducts, classesDirectory)
   }
@@ -241,7 +241,8 @@ object SbtAnalysis {
   /**
    * Print analysis relations to file.
    */
-  def printRelations(analysis: Analysis, output: Option[File], cwd: Option[File]): Unit = {
+  def printRelations(analysis0: CompileAnalysis, output: Option[File], cwd: Option[File]): Unit = {
+    val analysis = analysis0 match { case a: Analysis => a }
     for (file <- output) {
       val userDir = (cwd getOrElse Setup.Defaults.userDir) + "/"
       Using.fileWriter(utf8)(file) { out =>
@@ -270,7 +271,8 @@ object SbtAnalysis {
   /**
    * Print just source products to file, relative to classes directory.
    */
-  def printProducts(analysis: Analysis, output: Option[File], classesDirectory: File): Unit = {
+  def printProducts(analysis0: CompileAnalysis, output: Option[File], classesDirectory: File): Unit = {
+    val analysis = analysis0 match { case a: Analysis => a }
     for (file <- output) {
       Using.fileWriter(utf8)(file) { out =>
         def relative(path: File) = Util.relativize(classesDirectory, path)
