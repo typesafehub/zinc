@@ -85,7 +85,7 @@ object ScalaLocation {
  * Locating the sbt jars needed for zinc compile.
  */
 case class SbtJars(
-  sbtInterface: Option[File]         = None,
+  sbtInterfaces: List[File]          = Nil,
   compilerInterfaceSrc: Option[File] = None
 )
 
@@ -94,9 +94,11 @@ object SbtJars {
    * Select the sbt jars from a path.
    */
   def fromPath(path: Seq[File]): SbtJars = {
-    val sbtInterface = path find (_.getName matches Setup.SbtInterface.pattern)
+    val sbtInterfaces =
+      (path find (_.getName matches Setup.CompilerInterface.pattern)).toList :::
+      (path find (_.getName matches Setup.UtilInterface.pattern)).toList
     val compilerBridgeSrc = path find (_.getName matches Setup.CompilerBridgeSources211.pattern)
-    SbtJars(sbtInterface, compilerBridgeSrc)
+    SbtJars(sbtInterfaces, compilerBridgeSrc)
   }
 
   /**
@@ -162,7 +164,7 @@ object Settings {
     prefix(    "-C", "<javac-option>",         "Pass option to javac",                       (s: Settings, o: String) => s.copy(javacOptions = s.javacOptions :+ o)),
 
     header("sbt options:"),
-    file(      "-sbt-interface", "file",       "Specify sbt interface jar",                  (s: Settings, f: File) => s.copy(sbt = s.sbt.copy(sbtInterface = Some(f)))),
+    path(      "-sbt-interfaces", "path",      "Specify sbt interface jars",                 (s: Settings, fs: Seq[File]) => s.copy(sbt = s.sbt.copy(sbtInterfaces = fs.toList))),
     file(      "-compiler-interface", "file",  "Specify compiler interface sources jar",     (s: Settings, f: File) => s.copy(sbt = s.sbt.copy(compilerInterfaceSrc = Some(f)))),
 
     header("Incremental compiler options:"),
@@ -275,7 +277,7 @@ object Settings {
         ),
         javaHome = Util.normaliseOpt(cwd)(javaHome),
         sbt = sbt.copy(
-          sbtInterface = Util.normaliseOpt(cwd)(sbt.sbtInterface),
+          sbtInterfaces = Util.normaliseSeq(cwd)(sbt.sbtInterfaces).toList,
           compilerInterfaceSrc = Util.normaliseOpt(cwd)(sbt.compilerInterfaceSrc)
         ),
         incOptions = incOptions.

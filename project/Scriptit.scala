@@ -268,6 +268,11 @@ object Script {
       }
 
       log.info(blue(name))
+      // shutdown before each test
+      commands find (_.name == "zinc") match {
+        case Some(command) => command.action(dir, Seq("-shutdown"))
+        case None          => Failure("Unknown command")
+      }
       process(script)
     }
 
