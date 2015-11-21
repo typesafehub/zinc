@@ -241,13 +241,12 @@ class Compiler(scalac: AnalyzingCompiler, javac: IncrementalCompilerJavaTools) {
     import inputs._
     val cs = Compiler.impl.compilers(self.javac, self.scalac)
     val analysisMap = f1[File, Maybe[CompileAnalysis]](f => o2m(inputs.analysisMap get f))
-    val dc = f1[File, DefinesClass](f => new DefinesClass {
-      override def apply(className: String): Boolean =
-        inputs.analysisMap get f match {
-          case Some(a) => a.relations.definesClass(className).nonEmpty
-          case _       => false
-        }
-    })
+    val dc = f1[File, DefinesClass]{ f =>
+      val x = inputs.definesClass(f)
+      new DefinesClass {
+        override def apply(className: String): Boolean = x(className)
+      }
+    }
     val setup = Compiler.impl.setup(analysisMap, dc, false, inputs.cacheFile, Compiler.residentCache,
       inputs.incOptions, compileReporter)
     Compiler.impl.inputs(autoClasspath(classesDirectory, scalac.scalaInstance.allJars, javaOnly, inputs.classpath).toArray,
