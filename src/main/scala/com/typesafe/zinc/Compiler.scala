@@ -210,10 +210,6 @@ class Compiler(scalac: AnalyzingCompiler, javac: IncrementalCompilerJavaTools) {
       case a: Analysis => a
     }
     val setup = result.setup
-    if (mirrorAnalysis) {
-      SbtAnalysis.printRelations(result.analysis, Some(new File(cacheFile.getPath() + ".relations")), cwd)
-    }
-    SbtAnalysis.printOutputs(result.analysis, outputRelations, outputProducts, cwd, classesDirectory)
     Compiler.analysisStore(cacheFile).set(analysis, setup)
     result
   }
