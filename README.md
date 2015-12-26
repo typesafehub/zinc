@@ -1,6 +1,8 @@
 Zinc
 ====
 
+[![Build Status](https://travis-ci.org/typesafehub/zinc.svg?branch=master)](https://travis-ci.org/typesafehub/zinc)
+
 Zinc is a stand-alone version of [sbt]'s incremental compiler.
 
 Download the [latest stable version][download].

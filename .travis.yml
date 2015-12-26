@@ -1,8 +1,38 @@
+cache:
+  directories:
+    - $HOME/.m2/repository
+    - $HOME/.sbt
+    - $HOME/.ivy2
+branches:
+  only:
+    - master
 language: scala
+scala:
+   - 2.9.3
+   - 2.10.4
+   - 2.11.2
 script:
   - sbt scriptit
+  # Trick to avoid unnecessary cache updates
+  - find $HOME/.sbt -name "*.lock" | xargs rm
+  - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
+
 jdk:
+  - oraclejdk8
+  # - openjdk8 TravisCI is still working on this
+  - oraclejdk7
+  - openjdk7
   - openjdk6
+
+matrix:
+  exclude:
+    - scala: 2.9.3
+      jdk: oraclejdk8
+    - scala: 2.10.4
+      jdk: oraclejdk8
+    - scala: 2.11.2
+      jdk: oraclejdk8
+
 notifications:
   email:
   # TODO: change to zinc@typesafe.com once permissions to send emails from
