@@ -4,3 +4,5 @@ target
 .idea
 *.jar
 *.iml
+*.*~
+.*~
