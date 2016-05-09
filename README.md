@@ -11,6 +11,8 @@ Download the [latest stable version][download].
 Status
 ------
 
+Attention: There is a new effort concerning the development of zinc, which is hosted at [sbt zinc](https://github.com/sbt/zinc).
+
 Zinc is currently in a maintenance mode. There's no active development of new features.
 New releases are meant to stay up-to-date with latest sbt releases. Zinc tries to follow
 final releases of sbt. It doesn't follow milestone releases but exceptions can be
