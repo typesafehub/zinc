@@ -38,6 +38,7 @@ if ! ng_exists ; then
     *darwin*x86_64*) platform="darwin64" ;;
     *darwin*)        platform="darwin32" ;;
     *linux*x86_64*)  platform="linux64" ;;
+    *linux*ppc64le*) platform="linuxppc64le" ;;
     *linux*)         platform="linux32" ;;
     *)               platform="unknown" ;;
   esac
