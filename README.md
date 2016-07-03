@@ -6,7 +6,7 @@ Zinc is a stand-alone version of [sbt]'s incremental compiler.
 Download the [latest stable version][download].
 
 [sbt]: http://github.com/sbt/sbt
-[download]: http://downloads.typesafe.com/zinc/0.3.9/zinc-0.3.9.tgz
+[download]: http://downloads.typesafe.com/zinc/0.3.11/zinc-0.3.11.tgz
 
 Status
 ------
@@ -21,7 +21,7 @@ behind sbt with zinc releases but we do not guarantee it. Occasional delays can
 happen due to other priorities.
 
 If you are interested in helping with zinc maintenance or development, please contact
-Adriaan Moors (@adriaanm) at Typesafe.
+Adriaan Moors (@adriaanm) at Lightbend.
 
 Build
 -----
@@ -31,7 +31,7 @@ Zinc is built using sbt 0.13. To create the full distribution:
     sbt universal:packageZipTarball
 
 Previously published distributions up to 0.3.1-M1 relase can be found in the [old zinc repo].
-Newer distributions are hosted under [Typesafe downloads].
+Newer distributions are hosted under [Lightbend downloads].
 
 [old zinc repo]: http://repo.typesafe.com/typesafe/zinc/com/typesafe/zinc/dist/
 [Typesafe downloads]: http://downloads.typesafe.com/zinc/
@@ -40,6 +40,7 @@ Here's the table of final releases in 0.3.x series:
 
 | zinc version | sbt version | Download                                                                        |
 |--------------|-------------|---------------------------------------------------------------------------------|
+| 0.3.11       | 0.13.11     | [zinc-0.3.11.tgz](http://downloads.typesafe.com/zinc/0.3.11/zinc-0.3.11.tgz)    |
 | 0.3.9        | 0.13.9      | [zinc-0.3.9.tgz](http://downloads.typesafe.com/zinc/0.3.9/zinc-0.3.9.tgz)       |
 | 0.3.8.1      | 0.13.8.1    | [zinc-0.3.8.1.tgz](http://downloads.typesafe.com/zinc/0.3.8.1/zinc-0.3.8.1.tgz) |
 | 0.3.8        | 0.13.8      | [zinc-0.3.8.tgz](http://downloads.typesafe.com/zinc/0.3.8/zinc-0.3.8.tgz)       |
@@ -149,15 +150,14 @@ Contributions
 
 Contributions via GitHub pull requests are gladly accepted from their original
 author. Before we can accept pull requests, you will need to agree to the
-[Typesafe Contributor License Agreement][cla] online, using your GitHub account.
+[Lightbend Contributor License Agreement][cla] online, using your GitHub account.
 
-[cla]: http://www.typesafe.com/contribute/cla
-
+[cla]: http://www.lightbend.com/contribute/cla
 
 License
 -------
 
-Copyright 2012 Typesafe, Inc.
+Copyright 2012 Lightbend, Inc.
 
 Licensed under the [Apache License, Version 2.0][apache2] (the "License"); you
 may not use this software except in compliance with the License. You may obtain
