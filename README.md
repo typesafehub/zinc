@@ -42,6 +42,7 @@ Here's the table of final releases in 0.3.x series:
 
 | zinc version | sbt version | Download                                                                        |
 |--------------|-------------|---------------------------------------------------------------------------------|
+| 0.3.12       | 0.13.12     | [zinc-0.3.12.tgz](http://downloads.typesafe.com/zinc/0.3.12/zinc-0.3.12.tgz)    |
 | 0.3.11       | 0.13.11     | [zinc-0.3.11.tgz](http://downloads.typesafe.com/zinc/0.3.11/zinc-0.3.11.tgz)    |
 | 0.3.9        | 0.13.9      | [zinc-0.3.9.tgz](http://downloads.typesafe.com/zinc/0.3.9/zinc-0.3.9.tgz)       |
 | 0.3.8.1      | 0.13.8.1    | [zinc-0.3.8.1.tgz](http://downloads.typesafe.com/zinc/0.3.8.1/zinc-0.3.8.1.tgz) |
