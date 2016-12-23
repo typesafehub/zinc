@@ -49,6 +49,7 @@ function fork_command {
 
 # nailgun settings
 declare nailgun_port=3030
+declare nailgun_server="0.0.0.0"
 declare timeout=0
 unset nailed start status shutdown
 
@@ -63,6 +64,7 @@ while [[ $# -gt 0 ]] ; do
 
     -nailed) nailed=1; shift ;;
     -port) nailgun_port="$2"; shift 2 ;;
+    -server) nailgun_server="$2"; shift 2 ;;
     -start) start=1; shift ;;
     -status) status=1; shift ;;
     -shutdown) shutdown=1; shift ;;
@@ -209,7 +211,7 @@ function nailgun {
       "${java_options[@]}" \
       -Dzinc.home="$home_path" \
       -classpath "$classpath" \
-      com.typesafe.zinc.Nailgun $nailgun_port $timeout
+      com.typesafe.zinc.Nailgun $nailgun_port $timeout $nailgun_server
     # give some time for startup
     local attempts=50
     while ! check_port $nailgun_port ; do
@@ -218,7 +220,7 @@ function nailgun {
       sleep 0.1
     done
   fi
-  exec_command "$script_dir/nailgun" --nailgun-port $nailgun_port "$@"
+  exec_command "$script_dir/nailgun" --nailgun-server $nailgun_server --nailgun-port $nailgun_port "$@"
 }
 
 if [ -n "$nailed" ] ; then

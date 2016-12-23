@@ -243,6 +243,7 @@ object Settings {
 
     header("Nailgun options:"),
     dummy(     "-nailed",                      "Run as daemon with nailgun server"),
+    dummy(     "-server",                      "Set nailgun server address (if nailed)"),
     dummy(     "-port",                        "Set nailgun port (if nailed)"),
     dummy(     "-start",                       "Ensure nailgun server is running (if nailed)"),
     dummy(     "-status",                      "Report nailgun server status (if nailed)"),
