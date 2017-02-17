@@ -4,8 +4,9 @@
 
 package com.typesafe.zinc
 
-import com.martiansoftware.nailgun.{ Alias, AliasManager, NGContext, NGServer }
+import com.martiansoftware.nailgun.{ Alias, NGContext, NGServer }
 import java.io.File
+import java.net.InetAddress
 import sbt.Path
 
 class Nailgun // for classOf
@@ -21,8 +22,9 @@ object Nailgun {
    */
   def main(args: Array[String]): Unit = {
     val port = try args(0).toInt catch { case _: Exception => DefaultPort }
+    val server = try InetAddress.getByName(args(2)) catch { case _: Exception => null }
     val timeout = try Util.duration(args(1), DefaultTimeout) catch { case _: Exception => DefaultTimeout }
-    start(port, timeout)
+    start(server, port, timeout)
   }
 
   /**
@@ -60,8 +62,8 @@ object Nailgun {
    * Start the nailgun server.
    * Available aliased commands are 'zinc', 'status', and 'shutdown'.
    */
-  def start(port: Int, timeout: Long): Unit = {
-    val server = new NGServer(null, port)
+  def start(address: InetAddress, port: Int, timeout: Long): Unit = {
+    val server = new NGServer(address, port)
     val am = server.getAliasManager
     am.addAlias(new Alias("zinc", "scala incremental compiler", classOf[Nailgun]))
     am.addAlias(new Alias("status", "status of nailgun server", classOf[Nailgun]))
