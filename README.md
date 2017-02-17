@@ -6,7 +6,7 @@ Zinc is a stand-alone version of [sbt]'s incremental compiler.
 Download the [latest stable version][download].
 
 [sbt]: http://github.com/sbt/sbt
-[download]: http://downloads.typesafe.com/zinc/0.3.11/zinc-0.3.11.tgz
+[download]: http://downloads.typesafe.com/zinc/0.3.13/zinc-0.3.13.tgz
 
 Status
 ------
@@ -28,9 +28,7 @@ Adriaan Moors (@adriaanm) at Lightbend.
 Build
 -----
 
-Zinc is built using sbt 0.13. To create the full distribution:
-
-    sbt universal:packageZipTarball
+Zinc is built using sbt 0.13. See development.md.
 
 Previously published distributions up to 0.3.1-M1 relase can be found in the [old zinc repo].
 Newer distributions are hosted under [Lightbend downloads].
@@ -42,6 +40,7 @@ Here's the table of final releases in 0.3.x series:
 
 | zinc version | sbt version | Download                                                                        |
 |--------------|-------------|---------------------------------------------------------------------------------|
+| 0.3.13       | 0.13.13     | [zinc-0.3.13.tgz](http://downloads.typesafe.com/zinc/0.3.13/zinc-0.3.13.tgz)    |
 | 0.3.12       | 0.13.12     | [zinc-0.3.12.tgz](http://downloads.typesafe.com/zinc/0.3.12/zinc-0.3.12.tgz)    |
 | 0.3.11       | 0.13.11     | [zinc-0.3.11.tgz](http://downloads.typesafe.com/zinc/0.3.11/zinc-0.3.11.tgz)    |
 | 0.3.9        | 0.13.9      | [zinc-0.3.9.tgz](http://downloads.typesafe.com/zinc/0.3.9/zinc-0.3.9.tgz)       |
