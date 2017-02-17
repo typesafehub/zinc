@@ -33,6 +33,8 @@ object Compiler {
    */
   val analysisCache = Cache[FileFPrint, Option[(Analysis, CompileSetup)]](Setup.Defaults.analysisCacheLimit)
 
+  private val classLoaderCache: /*ClassLoaderCache*/ Any = ClassLoaderCacheAccess.newClassLoaderCache()
+
   /**
    * Get or create a zinc compiler based on compiler setup.
    */
@@ -60,7 +62,11 @@ object Compiler {
    * Create a new scala compiler.
    */
   def newScalaCompiler(instance: ScalaInstance, interfaceJar: File, log: Logger): AnalyzingCompiler = {
-    IC.newScalaCompiler(instance, interfaceJar, ClasspathOptions.boot, log)
+    val compiler = IC.newScalaCompiler(instance, interfaceJar, ClasspathOptions.boot, log)
+    // This cache, new in SBT 0.13.13, avoids repeatedly classloading the compiler interface's CallbackGlobal,
+    // which was bad for performance. The layer of compiler caching here in Zinc probably mitigated that ill effect,
+    // so long as the caller needed fewer than `Setup.Defaults.compilerCacheLimit` compilers at a time.
+    ClassLoaderCacheAccess.withClassLoaderCache(compiler, classLoaderCache)
   }
 
   /**
