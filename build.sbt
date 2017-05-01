@@ -1,4 +1,4 @@
-val sbtPatchVersion = "13"
+val sbtPatchVersion = "15"
 val sbtVersionToUse = s"0.13.$sbtPatchVersion"
 val zincVersion = s"0.3.$sbtPatchVersion"
 

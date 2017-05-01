@@ -79,21 +79,95 @@ Example:
       * Details 2
       * Details 3
 
-## How To Enforce These Guidelines?
+Development Notes
+=================
 
-### Make Use Of Typesafe’s Pull Request Validator
-It is recommended to set up the project to use Typesafe’s [Pull Request Validator](https://github.com/typesafehub/ghpullrequest-validator) that automatically merges the code, builds it, runs the tests and comments on the Pull Request in GitHub. 
+Information for developers.
 
-### Add A CONTRIBUTING.md File To GitHub
 
-It is recommended that each project add a ``CONTRIBUTING.md`` file (preferably this document) to their project on GitHub. This makes people get a notice about it when they try to open a Pull Request. Read more about it  [here](https://github.com/blog/1184-contributing-guidelines).
+Build
+-----
 
-## Misc Topics
+To build everything:
 
-### SIPs (only applies to Scala project)
-A SIP (Scala Improvement Process) needs an implementation, including cross-feature testing before we can accept it. There should be a clear distinction between "Approved To Develop" vs. "Accepted For Release X".
+    sbt> create
 
-# Future Goals
+This will create a runnable zinc command at `dist/target/zinc-<VERSION>/bin/zinc`
+that can be used for command-line based testing.
 
-* Using a single Issue Tracker for all projects.
-* Get all projects to use the documentation scheme and generation as outlined above
+
+Release
+-------
+
+    sbt> s3-upload
+
+This will upload zinc zinc-x.y.z.tgz to s3.
+
+    sbt> publishSigned
+
+This will publish to Sonatype OSS.
+
+Publish Locally
+---------------
+
+The zinc libraries can also be published locally to the local ivy or maven
+repositories.
+
+Publish to `~/.ivy2/local`:
+
+    sbt> publish-local
+
+Publish to `~/.m2/repository`:
+
+    sbt> set Publish.publishLocally := true
+    sbt> publish
+
+
+Test
+----
+
+The build also has its own simple testing framework. Tests are in `src/scriptit`.
+To run all the tests:
+
+    sbt> scriptit
+
+You can run individual tests. For example:
+
+    sbt> scriptit analysis/rebase
+
+Or groups of tests:
+
+    sbt> scriptit analysis/*
+
+Tab completion available.
+
+The default output from tests is minimal. You can show the full output of the
+previous test run with:
+
+    sbt> last scriptit
+
+Failures in tests will automatically show the full debug output.
+
+
+Local sbt
+---------
+
+To build zinc against a locally published version of sbt, the sbt jars need to
+be republished for maven under `com.typesafe.sbt`.
+
+First publish [sbt] itself locally with:
+
+    sbt> publish-local
+
+Use the [sbt-republish] project to publish sbt to the local maven repository
+with:
+
+    sbt> set every publishLocally := true
+    sbt> publish
+
+In the zinc project use only the local version of sbt with this setting:
+
+    sbt> set resolveSbtLocally := true
+
+[sbt]: https://github.com/harrah/xsbt
+[sbt-republish]: https://github.com/typesafehub/sbt-republish
