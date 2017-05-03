@@ -182,6 +182,16 @@ class Compiler(scalac: AnalyzingCompiler, javac: JavaCompiler) {
 
   /**
    * Run a compile. The resulting analysis is also cached in memory.
+   *
+   *  Note:  This variant automatically contructs an error-reporter
+   *         using given maxErrors and sourcePositionMapper parameters.
+   */
+  def compile(inputs: Inputs, cwd: Option[File], maxErrors: java.lang.Integer, sourcePositionMapper: xsbti.Position => xsbti.Position)(log: Logger): Analysis = {
+    compile(inputs, cwd, new LoggerReporter(maxErrors, log, sourcePositionMapper))(log)
+  }
+
+  /**
+   * Run a compile. The resulting analysis is also cached in memory.
    * 
    *  Note: This variant does not report progress updates
    */
